@@ -1,0 +1,817 @@
+{
+ "script": "_app249_verify_desen_skeleton.py",
+ "method": "skeleton（去占位 vs 去会议原句）逐字节相等 + §2 穷尽重扫 + §3 反证组",
+ "n_gt_sentences": 571,
+ "n_files": 76,
+ "n_pass": 19,
+ "n_fail": 57,
+ "n_residual_files": 0,
+ "residual": {},
+ "counterexample": {
+  "ok": false,
+  "detail": "§2 命中=False ／ §1 骨架FAIL=True",
+  "file": "results/app/app024_seam_guard_design.json",
+  "injected": "2분만 걸려서 이메일이 계속 쏟아져 들어올 때는 제가 집중할 수 있게 해"
+ },
+ "results": [
+  {
+   "file": "results/app/_app551_A_mt_npu_tts_off_out.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 23,
+   "n_removed": 19
+  },
+  {
+   "file": "results/app/_app551_B_mt_gpu0_tts_cuda_out.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 23,
+   "n_removed": 19
+  },
+  {
+   "file": "results/app/_app551_C_mt_npu_tts_cuda_out.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 23,
+   "n_removed": 19
+  },
+  {
+   "file": "results/app/app024_seam_guard_design.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app024_seam_rule_design.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app024_stopword_audit.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app028_soak_60s/app028_subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx=\"  Let's get started. So, welcome\\nto our Q\"",
+    "before_ctx=\" <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, wel\""
+   ],
+   "n_placeholders": 2,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app042_soak_run4/app042_subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx=\"  Let's get started. So, welcome\\nto our Q\"",
+    "before_ctx=\" <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, wel\""
+   ],
+   "n_placeholders": 10,
+   "n_removed": 6
+  },
+  {
+   "file": "results/app/app121_asr_app_3mat_GPU0.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1849",
+    "after_ctx='s\": 6.4,\\n          \"text\": \"All right.   Let\\'s get started. So well.\"\\n        },'",
+    "before_ctx='s\": 6.4,\\n          \"text\": \"All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get started. So well'"
+   ],
+   "n_placeholders": 10,
+   "n_removed": 8
+  },
+  {
+   "file": "results/app/app121_asr_app_3mat_GPU0_OLD_v11.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1843",
+    "after_ctx='s\": 6.4,\\n          \"text\": \"All right.   Let\\'s get started. So well.\"\\n        },'",
+    "before_ctx='s\": 6.4,\\n          \"text\": \"All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get started. So well'"
+   ],
+   "n_placeholders": 10,
+   "n_removed": 8
+  },
+  {
+   "file": "results/app/app121_asr_app_3mat_NPU.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1846",
+    "after_ctx='s\": 6.4,\\n          \"text\": \"All right.   Let\\'s get started. So well.\"\\n        },'",
+    "before_ctx='s\": 6.4,\\n          \"text\": \"All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get started. So well'"
+   ],
+   "n_placeholders": 9,
+   "n_removed": 7
+  },
+  {
+   "file": "results/app/app121_asr_npu_longseg_new_v111.json",
+   "verdict": "PASS",
+   "n_placeholders": 3,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app121_asr_npu_longseg_old_v11.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1880",
+    "after_ctx=\"ed. Um. So welcome to our\\\\n[实时] lright.  Morning. Let's get started. Um. So welc\"",
+    "before_ctx=\"ed. Um. So welcome to our\\\\n[实时] lright. <会议原句 len=21 sha256=301202c0>. Morning. Let's g\""
+   ],
+   "n_placeholders": 2,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app128b_e2e7_src/off_bgkeep_e2e.json",
+   "verdict": "PASS",
+   "n_placeholders": 1,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app128b_e2e7_src/on_cpu_bgkeep_e2e.json",
+   "verdict": "PASS",
+   "n_placeholders": 1,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app128b_e2e7_src/on_gpu_bgkeep_e2e.json",
+   "verdict": "PASS",
+   "n_placeholders": 1,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app273_mt_int4_vs_int8_evidence.json",
+   "verdict": "PASS",
+   "n_placeholders": 4,
+   "n_removed": 4
+  },
+  {
+   "file": "results/app/app274_app069_loader_fix_evidence.json",
+   "verdict": "PASS",
+   "n_placeholders": 1,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app294_rc4_npu_acceptance_evidence.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=8900",
+    "after_ctx='g to differentiate us.\\\\n<会议原句 len=14 sha256=fd8e8b5c>.  Alex shared this and he talked about th'",
+    "before_ctx='g to differentiate us.\\\\n<会议原句 len=14 sha<会议原句 len=15 sha256=9726b63b>kay, next slide. Alex shared this and h'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app294_rc4_npu_out/igpu/transcript.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx=\"  Let's get started. So, welcome\\nto our Q\"",
+    "before_ctx=\" <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, wel\""
+   ],
+   "n_placeholders": 10,
+   "n_removed": 6
+  },
+  {
+   "file": "results/app/app294_rc4_npu_out/npu/transcript.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx=\"  Let's get started. So, welcome.\\nto our \"",
+    "before_ctx=\" <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, wel\""
+   ],
+   "n_placeholders": 9,
+   "n_removed": 6
+  },
+  {
+   "file": "results/app/app294_rc4_npu_out/npu_full/transcript.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx=\"  Let's get started. So, welcome.\\nto our \"",
+    "before_ctx=\" <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, wel\""
+   ],
+   "n_placeholders": 9,
+   "n_removed": 6
+  },
+  {
+   "file": "results/app/app312_rc5_out/gpu/acceptance.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1868",
+    "after_ctx=' 4655,\\n \"transcript_head\": \"All right.   Let\\'s get started. So well.\\\\nWelcome to'",
+    "before_ctx=' 4655,\\n \"transcript_head\": \"All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get started. So well'"
+   ],
+   "n_placeholders": 2,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app312_rc5_out/gpu/transcript.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 15,
+   "n_removed": 11
+  },
+  {
+   "file": "results/app/app312_rc5_out/npu/acceptance.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1867",
+    "after_ctx=' 4657,\\n \"transcript_head\": \"All right.   Let\\'s get started. So well.\\\\nWelcome to'",
+    "before_ctx=' 4657,\\n \"transcript_head\": \"All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get started. So well'"
+   ],
+   "n_placeholders": 2,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app312_rc5_out/npu/transcript.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 14,
+   "n_removed": 10
+  },
+  {
+   "file": "results/app/app332_v23_cli_final.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx=\"  Let's get started. So, welcome\\nto our Q\"",
+    "before_ctx=\" <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, wel\""
+   ],
+   "n_placeholders": 10,
+   "n_removed": 6
+  },
+  {
+   "file": "results/app/app332_v23_cli_output.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=791",
+    "after_ctx=\" file/data utilities can be used.\\n\\n[实时]  \\n[实时]   Let's get  [TTS] [TTS] [tts_eng\"",
+    "before_ctx=' file/data utilities can be used.\\n\\n[实时] <会议原句 len=21 sha256=301202c0>. \\n[实时] Good mornin'"
+   ],
+   "n_placeholders": 29,
+   "n_removed": 14
+  },
+  {
+   "file": "results/app/app337_r1_partial_output.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=873",
+    "after_ctx=\" file/data utilities can be used.\\n\\n[实时]  \\n[实时]   Let's get\\n[实时]   Let's get star\"",
+    "before_ctx=' file/data utilities can be used.\\n\\n[实时] <会议原句 len=21 sha256=301202c0>. \\n[实时] Good mornin'"
+   ],
+   "n_placeholders": 29,
+   "n_removed": 14
+  },
+  {
+   "file": "results/app/app337_v23_cli_rerun_final.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx=\"  Let's get started. So, welcome\\nto our Q\"",
+    "before_ctx=\" <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, wel\""
+   ],
+   "n_placeholders": 10,
+   "n_removed": 6
+  },
+  {
+   "file": "results/app/app337_v23_cli_rerun_output.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=744",
+    "after_ctx=\"ning.\\n[实时] <会议原句 len=21 sha256=301202c0>.\\n[实时]  \\n[实时]   Let's get\\n[实时]   Let's get star\"",
+    "before_ctx='ning.\\n[实时] <会议原句 len=21 sha256=301202c0>.\\n[实时] <会议原句 len=21 sha256=301202c0>. \\n[实时] Good mornin'"
+   ],
+   "n_placeholders": 29,
+   "n_removed": 14
+  },
+  {
+   "file": "results/app/app415_rc6_langs/de/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/en/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/es/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/fr/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/it/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ja/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ko/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/pt/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ru/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app415_rc6_langs/summary.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1124",
+    "after_ctx='actly.\"\\n   ],\\n   \"translations\": [\\n    。。\",\\n    。。。\",\\n    。人们工作结束后应该。\"\\n   ],\\n   '",
+    "before_ctx='actly.\"\\n   ],\\n   \"translations\": [\\n    。<会议原句 len=25 sha256=1525a328>。\",\\n    。我的团队，'"
+   ],
+   "n_placeholders": 60,
+   "n_removed": 30
+  },
+  {
+   "file": "results/app/app415_rc6_langs/zh/subtitles.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1",
+    "after_ctx='。。\\n。。。\\n。人们工作结束后应该。\\n'",
+    "before_ctx='。<会议原句 len=25 sha256=1525a328>。\\n。我的团队，我们每天早上'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 3
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=899",
+    "after_ctx='    \"text\": \"<会议原句 len=22 sha256=9e9eab7d>。 。 。\",\\n     \"end_reason\": null\\n    }\\n   ],\\n'",
+    "before_ctx='    \"text\": \"<会议原句 len=22 sha256=9e9eab7<会议原句 len=35 sha256=1511fe1e>情阻碍着他们。\",'"
+   ],
+   "n_placeholders": 36,
+   "n_removed": 20
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/de/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=631",
+    "after_ctx='reits vorhandener Auslöser reicht aus.  \\n   \"end_reason\": null\\n  }\\n ],\\n \"end_rea'",
+    "before_ctx='reits vorhandener Auslöser reicht aus.  Jeder erzählt, was er gestern getan hat,'"
+   ],
+   "n_placeholders": 3,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/en/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=591",
+    "after_ctx='existing trigger factor is sufficient.  \\n   \"end_reason\": null\\n  }\\n ],\\n \"end_rea'",
+    "before_ctx='existing trigger factor is sufficient.  Everyone will talk about what they did y'"
+   ],
+   "n_placeholders": 3,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/es/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=630",
+    "after_ctx='n factor desencadenante que ya existe.  \\n   \"end_reason\": null\\n  }\\n ],\\n \"end_rea'",
+    "before_ctx='n factor desencadenante que ya existe.  Cada persona cuenta lo que hizo ayer, lo'"
+   ],
+   "n_placeholders": 3,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/fr/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=653",
+    "after_ctx='’un facteur déclencheur déjà existant.  \\n   \"end_reason\": null\\n  }\\n ],\\n \"end_rea'",
+    "before_ctx='’un facteur déclencheur déjà existant.  Chacun dira ce qu’il a fait hier, ce qu’'"
+   ],
+   "n_placeholders": 3,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/it/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=618",
+    "after_ctx='a un fattore innescante già esistente.  \\n   \"end_reason\": null\\n  }\\n ],\\n \"end_rea'",
+    "before_ctx='a un fattore innescante già esistente.  Ognuno dice cosa ha fatto ieri, cosa far'"
+   ],
+   "n_placeholders": 3,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/ja/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=245",
+    "after_ctx='dur_s\": 12.72,\\n   \"text\": \"2分しかかからない。 。 。\",\\n   \"end_reason\": null\\n  },\\n  {\\n   \"p'",
+    "before_ctx='dur_s\": 12.72,\\n   \"text\": \"2分しかかからない。 。 コツは、例えばコーヒーを淹れるときなど、新しい習慣を既存の行動と結びつけることで'"
+   ],
+   "n_placeholders": 6,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/ko/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=528",
+    "after_ctx=': \"<会议原句 len=33 sha256=89fd9fdf>.   \\n   \"end_reason\": null\\n  }\\n ],\\n \"end_re'",
+    "before_ctx=': \"<会议原句 len=33 sha256=89fd9fdf>.  <会议原句 len=24 sha256=6c7b0774>. 모든 사람은 어제 무엇을 '"
+   ],
+   "n_placeholders": 4,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/pt/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=261",
+    "after_ctx=' \"text\": \"<会议原句 len=27 sha256=60c26a45>.  \\n   \"end_reason\": null\\n  },\\n  {\\n   \"path'",
+    "before_ctx=' \"text\": \"<会议原句 len=27 sha256=60c26a45>.  O segredo é relacionar a nova hábito com'"
+   ],
+   "n_placeholders": 4,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/ru/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=252",
+    "after_ctx=' 16.56,\\n   \"text\": \"<会议原句 len=17 sha256=40a50f90>.  \\n   \"end_reason\": null\\n  },\\n  {\\n   \"path'",
+    "before_ctx=' 16.56,\\n   \"text\": \"<会议原句 len=17 sha256=40a50f90>.  Секрет заключается в том, чтобы связать '"
+   ],
+   "n_placeholders": 4,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/zh/wavs.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=502",
+    "after_ctx='\\n   \"text\": \"<会议原句 len=22 sha256=9e9eab7d>。 。 。\",\\n   \"end_reason\": null\\n  }\\n ],\\n \"end_'",
+    "before_ctx='\\n   \"text\": \"<会议原句 len=22 sha256=9e9eab7<会议原句 len=35 sha256=1511fe1e>情阻碍着他们。\",'"
+   ],
+   "n_placeholders": 3,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app419_rc6_langs_summary.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=1083",
+    "after_ctx='lations\": 3,\\n   \"translations\": [\\n    。 。\",\\n    。 。 。\",\\n    。 人们工作结束后应该。\"\\n   ],\\n'",
+    "before_ctx='lations\": 3,\\n   \"translations\": [\\n    。 <会议原句 len=25 sha256=1525a328>。\",\\n    。 我的团队'"
+   ],
+   "n_placeholders": 73,
+   "n_removed": 30
+  },
+  {
+   "file": "results/app/app419_rc6_langs_summary_payload.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=860",
+    "after_ctx='lations\": 3,\\n   \"translations\": [\\n    。 。\",\\n    。 。 。\",\\n    。 人们工作结束后应该。\"\\n   ],\\n'",
+    "before_ctx='lations\": 3,\\n   \"translations\": [\\n    。 <会议原句 len=25 sha256=1525a328>。\",\\n    。 我的团队'"
+   ],
+   "n_placeholders": 73,
+   "n_removed": 30
+  },
+  {
+   "file": "results/app/app439_app099_lang_evidence.json",
+   "verdict": "PASS",
+   "n_placeholders": 1,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app458_app100_device/gpu_control_asr_npu.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 20,
+   "n_removed": 16
+  },
+  {
+   "file": "results/app/app458_app100_device/gpu_same_asr_mt.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 21,
+   "n_removed": 17
+  },
+  {
+   "file": "results/app/app461_app100_device/gpu_control_asr_npu.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 20,
+   "n_removed": 16
+  },
+  {
+   "file": "results/app/app461_app100_device/gpu_same_asr_mt.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 21,
+   "n_removed": 17
+  },
+  {
+   "file": "results/app/app501_app105_rc10_acceptance.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=4322",
+    "after_ctx='\": 9797,\\n   \"output_head\": \"All right.   Let\\'s get started. So well.\\\\nWelcome to'",
+    "before_ctx='\": 9797,\\n   \"output_head\": \"All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get started. So well'"
+   ],
+   "n_placeholders": 2,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app501_app105_rc10_acceptance/chain10min.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 23,
+   "n_removed": 19
+  },
+  {
+   "file": "results/app/app526_app107_rc11_acceptance/chain10min.txt",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=12",
+    "after_ctx=\"All right.   Let's get started. So well.\\nWelcome to \"",
+    "before_ctx=\"All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So well\""
+   ],
+   "n_placeholders": 23,
+   "n_removed": 19
+  },
+  {
+   "file": "results/app/app582_specialmvp_sp3_acceptance.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=7358",
+    "after_ctx='telemetry_lines\": [\\n  \"[实时] All right.   Let\\'s get  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（'",
+    "before_ctx='telemetry_lines\": [\\n  \"[实时] All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get  [翻译] 翻译模型就绪（自动 '"
+   ],
+   "n_placeholders": 2,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app582_specialmvp_sp3_acceptance.run1.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=7725",
+    "after_ctx='telemetry_lines\": [\\n  \"[实时] All right.   Let\\'s get  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（'",
+    "before_ctx='telemetry_lines\": [\\n  \"[实时] All right.  <会议原句 len=12 sha256=cdf71dea>. Let\\'s get  [翻译] 翻译模型就绪（自动 '"
+   ],
+   "n_placeholders": 2,
+   "n_removed": 1
+  },
+  {
+   "file": "results/app/app591_acceptance_app119_allnpu_run20261121-033422.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_cold_zh_run20261117-093348.json",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=6849",
+    "after_ctx='mt_ready_lines\": [\\n   \"[实时] All right.    [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，'",
+    "before_ctx='mt_ready_lines\": [\\n   \"[实时] All right.  <会议原句 len=12 sha256=cdf71dea>.  [翻译] 翻译模型就绪（自动 · INT8-CW '"
+   ],
+   "n_placeholders": 4,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_en_run20261117-101859.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-094715.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-094715_v2.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-100823.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-100823_v2.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "results/app/app591_acceptance_spsp5_zh_run20261117-140853.json",
+   "verdict": "PASS",
+   "n_placeholders": 2,
+   "n_removed": 2
+  },
+  {
+   "file": "status/STATUS_ARCHIVE_2026-10.md",
+   "verdict": "PASS",
+   "n_placeholders": 1,
+   "n_removed": 1
+  },
+  {
+   "file": "status/archive/STATUS_ASR_upto_20261030.md",
+   "verdict": "FAIL",
+   "detail": [
+    "skeleton_mismatch",
+    "first_diff_at=118127",
+    "after_ctx=\" 段文本与 P0 torch 参照**逐段一致**\\n（`All right.   Let's get started. So, we.` /\\n`Welcome \"",
+    "before_ctx=\" 段文本与 P0 torch 参照**逐段一致**\\n（`All right.  <会议原句 len=12 sha256=cdf71dea>. Let's get started. So, we.\""
+   ],
+   "n_placeholders": 16,
+   "n_removed": 11
+  },
+  {
+   "file": "status/status_history.md",
+   "verdict": "PASS",
+   "n_placeholders": 1,
+   "n_removed": 1
+  }
+ ],
+ "verdict": "FAIL"
+}
