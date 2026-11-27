@@ -180,7 +180,7 @@ confucius4-openvino/
 .venv/Scripts/python.exe transcribe_stream.py path\to.wav --strategy rolling --max-segment-sec 20
 
 # 流式输出示例
-# [seg   0] start=   0.00s end=  13.68s chunks=22 wall= 7.16s RTF=0.523 text='Good morning everyone. Morning, let\'s ge'
+# [seg   0] start=   0.00s end=  13.68s chunks=22 wall= 7.16s RTF=0.523 text='[会议句 idx 55]. Morning, let\'s ge'
 # [seg   1] start=  13.68s end=  29.69s chunks=24 wall= 9.13s RTF=0.572 text='...'
 # [transcribe] strategy=vad max_segment_sec=20.0 segments=226 chunks=...
 ```

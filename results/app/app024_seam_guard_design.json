@@ -8,7 +8,7 @@
       "shape_prev": "lower",
       "shape_cur": "Capital",
       "tail_punct": false,
-      "prev_tail": "rning everyone. Good morning. Let's get started. So, welcome",
+      "prev_tail": "rning everyone. [会议句 idx 54]. Let's get started. So, welcome",
       "cur_head": "Welcome to our Q3 26 QGS."
     },
     {
@@ -406,7 +406,7 @@
       "shape_prev": "lower",
       "shape_cur": "Capital",
       "tail_punct": false,
-      "prev_tail": "rning everyone. Good morning. Let's get started. So, welcome",
+      "prev_tail": "rning everyone. [会议句 idx 54]. Let's get started. So, welcome",
       "cur_head": "Welcome to our Q3 26 QGS."
     },
     {

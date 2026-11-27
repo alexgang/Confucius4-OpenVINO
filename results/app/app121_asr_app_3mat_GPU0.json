@@ -49,7 +49,7 @@
           "start_s": -0.0,
           "end_s": 6.4,
           "duration_s": 6.4,
-          "text": "All right. Good morning, everyone. Good morning. Let's get started. So well."
+          "text": "All right. [会议句 idx 55]. [会议句 idx 54]. Let's get started. So well."
         },
         {
           "start_s": 6.4,
@@ -61,7 +61,7 @@
           "start_s": 10.24,
           "end_s": 16.64,
           "duration_s": 6.4,
-          "text": "Agenda topics today. We'll talk about three. One, I want to share our engineering strategy."
+          "text": "[会议句 idx 6]. We'll talk about three. One, I want to share our engineering strategy."
         },
         {
           "start_s": 16.64,
@@ -73,7 +73,7 @@
           "start_s": 23.04,
           "end_s": 30.72,
           "duration_s": 7.68,
-          "text": "Priorities and just general execution, and then Lisa will join me and go through all of the work that's done with the software team."
+          "text": "Priorities and just general execution, and then Lisa will join me and go through all of the work that's done [会议句 idx 194]."
         },
         {
           "start_s": 30.72,
@@ -103,13 +103,13 @@
           "start_s": 56.96,
           "end_s": 63.36,
           "duration_s": 6.4,
-          "text": "Enable that growth again. We are the scale function that will drive growth for all of these business units."
+          "text": "[会议句 idx 46]. We are the scale function that will drive growth for all of these business units."
         },
         {
           "start_s": 63.36,
           "end_s": 69.76,
           "duration_s": 6.4,
-          "text": "So the way we look at a simplified stack is just meant to describe, what are the competitive advantages and the."
+          "text": "So the way we look at a simplified stack is just meant to describe, [会议句 idx 188] and the."
         },
         {
           "start_s": 69.76,
@@ -127,7 +127,7 @@
           "start_s": 82.56,
           "end_s": 88.96,
           "duration_s": 6.4,
-          "text": "Optimizing one layer above all else. It's looking at this whole stack end to end, to bring a."
+          "text": "[会议句 idx 112]. It's looking at this whole stack end to end, to bring a."
         },
         {
           "start_s": 88.96,
@@ -211,7 +211,7 @@
           "start_s": 174.08,
           "end_s": 181.76,
           "duration_s": 7.68,
-          "text": "And the scale is very important. We see the benefit of that today, even in our traditional business, where OEMs love the scale."
+          "text": "[会议句 idx 17]. We see the benefit of that today, even in our traditional business, where OEMs love the scale."
         },
         {
           "start_s": 181.76,
@@ -223,7 +223,7 @@
           "start_s": 189.44,
           "end_s": 195.84,
           "duration_s": 6.4,
-          "text": "Discussion. Very successful execution on Patrick and Wildcat, and Novelick on a base derivative model."
+          "text": "Discussion. [会议句 idx 170]."
         },
         {
           "start_s": 195.84,
@@ -235,7 +235,7 @@
           "start_s": 202.24,
           "end_s": 208.64,
           "duration_s": 6.4,
-          "text": "Costs in OPX. I'll actually show you guys a visual of Novolikli Tehran and the entire ski stack we're delivering."
+          "text": "[会议句 idx 39]. I'll actually show you guys a visual of Novolikli Tehran and the entire ski stack we're delivering."
         },
         {
           "start_s": 208.64,
@@ -247,7 +247,7 @@
           "start_s": 215.04,
           "end_s": 221.44,
           "duration_s": 6.4,
-          "text": "We need to go support both open ecosystem and our traditional OS partners, reference designs."
+          "text": "[会议句 idx 178]."
         },
         {
           "start_s": 221.44,
@@ -271,7 +271,7 @@
           "start_s": 241.28,
           "end_s": 247.68,
           "duration_s": 6.4,
-          "text": "Platforms. So this is their strategy: We will always keep this in mind as we make decisions. And again."
+          "text": "Platforms. [会议句 idx 137]. And again."
         },
         {
           "start_s": 247.68,
@@ -283,7 +283,7 @@
           "start_s": 254.08,
           "end_s": 261.12,
           "duration_s": 7.04,
-          "text": "Moving forward. Okay, next slide. Alex shared this, and he talked about the business."
+          "text": "[会议句 idx 96]. [会议句 idx 111]. [会议句 idx 7]."
         },
         {
           "start_s": 261.12,
@@ -301,13 +301,13 @@
           "start_s": 276.48,
           "end_s": 282.88,
           "duration_s": 6.4,
-          "text": "Compute and grow connectivity. So connectivities are wired and wireless business. Right? What does that mean for us?"
+          "text": "[会议句 idx 38]. So connectivities are wired and wireless business. Right? [会议句 idx 189]?"
         },
         {
           "start_s": 282.88,
           "end_s": 289.28,
           "duration_s": 6.4,
-          "text": "No change in what we're doing today. Job one: Novelike at scale, right? If you look at where we've."
+          "text": "No change in what we're doing today. [会议句 idx 83]? If you look at where we've."
         },
         {
           "start_s": 289.28,
@@ -331,7 +331,7 @@
           "start_s": 309.76,
           "end_s": 316.16,
           "duration_s": 6.4,
-          "text": "We quickly come up with Griffin, Colvin, Razorlake, which puts back in leadership again. So great opportunity with Nova Lake."
+          "text": "We quickly come up with Griffin, Colvin, Razorlake, which puts back in leadership again. So [会议句 idx 56]."
         },
         {
           "start_s": 316.16,
@@ -361,7 +361,7 @@
           "start_s": 342.4,
           "end_s": 344.32,
           "duration_s": 1.92,
-          "text": "Scale wild cat lake."
+          "text": "[会议句 idx 127]."
         },
         {
           "start_s": 344.32,
@@ -397,7 +397,7 @@
           "start_s": 378.88,
           "end_s": 385.28,
           "duration_s": 6.4,
-          "text": "In that our volume penetration edge is very high, so the question is: How do you go scale that? We have an open."
+          "text": "In that our volume penetration edge is very high, so the question is: How do you go scale that? [会议句 idx 174]."
         },
         {
           "start_s": 385.28,
@@ -421,13 +421,13 @@
           "start_s": 408.96,
           "end_s": 415.36,
           "duration_s": 6.4,
-          "text": "And then physical AI. And look, the way to look at physical AI is the world of humanoids running around."
+          "text": "[会议句 idx 21]. And look, the way to look at physical AI is the world of humanoids running around."
         },
         {
           "start_s": 415.36,
           "end_s": 421.76,
           "duration_s": 6.4,
-          "text": "Doing everything for us. I'm sure it will happen at some point in time. It ain't going to happen tomorrow, and so we got to look at the."
+          "text": "[会议句 idx 43]. I'm sure it will happen at some point in time. It ain't going to happen tomorrow, and so we got to look at the."
         },
         {
           "start_s": 421.76,
@@ -475,7 +475,7 @@
           "start_s": 467.84,
           "end_s": 474.88,
           "duration_s": 7.04,
-          "text": "You learn. You gain access with definitional partners, and then as we approach physical AI, the kind of same playbook I spoke about."
+          "text": "You learn. [会议句 idx 198], the kind of same playbook I spoke about."
         },
         {
           "start_s": 474.88,
@@ -547,13 +547,13 @@
           "start_s": 539.52,
           "end_s": 545.92,
           "duration_s": 6.4,
-          "text": "So we did product concept. There is clarity around what those programs are. There is clarity around the key metrics."
+          "text": "So we did product concept. There is clarity around what those programs are. [会议句 idx 158]."
         },
         {
           "start_s": 545.92,
           "end_s": 556.8,
           "duration_s": 10.88,
-          "text": "And they're off and running, and moving into execution. Hammer Lake is going to be an extremely profitable program for the company, as measured by gross margin, both on the Intel side."
+          "text": "And they're off and running, and moving into execution. Hammer Lake is going to be an extremely profitable program for the company, as measured by gross margin, [会议句 idx 31]."
         },
         {
           "start_s": 556.8,

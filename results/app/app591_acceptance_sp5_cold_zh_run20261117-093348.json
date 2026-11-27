@@ -197,7 +197,7 @@
    "[gpu_int8] 加载 27.9 s，设备 GPU.0，识别语种 自动检测"
   ],
   "mt_ready_lines": [
-   "[实时] All right. Good morning, everyone. Good morning.  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 5.7 s）"
+   "[实时] All right. [会议句 idx 55]. [会议句 idx 54].  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 5.7 s）"
   ],
   "worker_failure_lines": [],
   "n_lines_total": 2919
@@ -350,7 +350,7 @@
    "[gpu_int8] 加载 27.9 s，设备 GPU.0，识别语种 自动检测"
   ],
   "mt_ready_lines": [
-   "[实时] All right. Good morning, everyone. Good morning.  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 5.7 s）"
+   "[实时] All right. [会议句 idx 55]. [会议句 idx 54].  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 5.7 s）"
   ]
  },
  "backlog_cleared_rel_s": 74.6,

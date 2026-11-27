@@ -37,7 +37,7 @@
   "zero_audio_log_lines": [],
   "n_rtf_backlog_log_lines": 6,
   "rtf_backlog_log_lines": [
-    "[实时] Agenda topics today, we'll talk about three.  [TTS] [TTS] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
+    "[实时] [会议句 idx 6], we'll talk about three.  [TTS] [TTS] [tts_engine] cp_decode: NPU（生产配置要求；实测 RTF 1.912→1.218、首块 1.296→0.837 s）",
     "[gpu_int8] 音频 300.1s  墙钟 300.6s  RTF(计算) 0.701  出字延迟中位 388 ms  最大积压 1.2s  段 46",
     "[TTS] 首包 —s  积压 当前 0.00s / 最大 0.00s  提交 0  播完 0  丢弃 0  重启 0  state=ready",
     "[TTS] 收尾（close 前）：结尾滞后 —s  关闭作废 0  空句 0  积压 最大 0.00s",

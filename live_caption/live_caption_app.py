@@ -1,4 +1,4 @@
-r"""live_caption_app.py — Confucius4 实时字幕（多后端对比测试应用）
+r"""live_caption_app.py — 实时字幕（多后端对比测试应用）
 
 采集音频（16 kHz 单声道），流式识别，并把字幕实时显示在屏幕上。
 可在界面里切换推理后端：
@@ -146,10 +146,10 @@ import package_profile
 #:   ⚠️ 旧实现里窗口标题**写死**「实时字幕 MiniMVP v1.0」⇒ 完整版包也显示
 #:      MiniMVP（= **产品名写错**）⇒ 现在按包形态取。
 if package_profile.is_minimvp():
-    _PRODUCT_NAME = 'Confucius4 实时字幕 MiniMVP'
-    _WINDOW_TITLE = '实时字幕 MiniMVP v1.0'
+    _PRODUCT_NAME = '实时字幕 MiniMVP'
+    _WINDOW_TITLE = '实时字幕 MiniMVP v1.2.1'
 else:
-    _PRODUCT_NAME = 'Confucius4 实时字幕'
+    _PRODUCT_NAME = '实时字幕'
     _WINDOW_TITLE = '实时字幕 v2.5'
 
 from audio_source import (BLOCK_MS, SR, default_output_device_id,
@@ -7537,12 +7537,11 @@ class App:
         **出厂默认就是 ASR GPU.0 + MT GPU.0 + TTS NPU** ⇒
         ① 继续弹「⚠️ 会 CL_OUT_OF_RESOURCES ⇒ 建议把 ASR 放 NPU」
            ⇒ **每次启动都出现**、**与出厂默认自相矛盾** ⇒ 误导人；
-        ② 「rc5 在 B 机 268 s 崩溃」是**旧解码器**的事；MiniMVP
+        ② 「旧解码器长时间运行崩溃」是**旧解码器**的事；MiniMVP
            现在用 **stateful（KV cache）解码器**，负载约为旧解码器的 1/3。
         ⇒ MiniMVP 现在**只记一行日志**（**不再覆盖**状态栏 / MT 说明区）：
 
-            ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；
-            rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）
+            ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3）
 
         ⚠️ **完整版（v2.x）不变**：它仍用**旧解码器** ⇒ 保留原来的告警文案
         与状态栏显示（reviewer 只要求改 MiniMVP）。
@@ -7566,8 +7565,8 @@ class App:
         except Exception:
             stateful = False
         if stateful:
-            msg = ('ASR 与 MT 同在 %s（stateful 解码器负载约为旧解码器的 1/3；'
-                   'rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）' % asr_dev)
+            msg = ('ASR 与 MT 同在 %s（stateful 解码器负载约为旧解码器的 1/3）'
+                   % asr_dev)
         else:
             msg = ('⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
                    'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'
@@ -9566,7 +9565,7 @@ def main():
     #   MiniMVP 的**出厂默认就是** ASR GPU.0 + MT GPU.0（用户 11-12 14:30 决定）
     #   ⇒ 旧文案「⚠️ 会 CL_OUT_OF_RESOURCES ⇒ 建议把 ASR 放 NPU」
     #      **每次启动都出现**、**与出厂默认自相矛盾** ⇒ 误导人 ⇒ 改写。
-    #   「rc5 在 B 机 268 s 崩溃」是**旧解码器**的事；MiniMVP 现在是
+    #   「旧解码器长时间运行崩溃」是**旧解码器**的事；MiniMVP 现在是
     #   **stateful（KV cache）解码器**，负载约为旧解码器的 1/3。
     #   ⚠️ **只提示、不改设备**的老规矩**不变**（APP-098 二.4）。
     #   ⚠️ **完整版（v2.x）不变**（仍用旧解码器）⇒ 保留原告警文案。
@@ -9577,8 +9576,7 @@ def main():
             # 🔴🔴🔳 APP-108 §2：Special MVP 也是 stateful ⇒ 同一口径。
             if device_config.uses_stateful_asr_decoder():
                 print('[device] ASR 与 MT 同在 %s（stateful 解码器负载约为'
-                      '旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，'
-                      '待 B 机复核）' % _asr_d, file=sys.stderr, flush=True)
+                      '旧解码器的 1/3）' % _asr_d, file=sys.stderr, flush=True)
             else:
                 print('[device] ⚠️ ASR 与 MT 都放在 %s ⇒ 长时间运行可能报 '
                       'CL_OUT_OF_RESOURCES（GPU 资源耗尽）。'

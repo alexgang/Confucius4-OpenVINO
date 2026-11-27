@@ -9,7 +9,7 @@
       "punct": false,
       "decide": true,
       "ref_count": 1,
-      "prev": " everyone. Good morning. Let's get started. So, welcome",
+      "prev": " everyone. [会议句 idx 54]. Let's get started. So, welcome",
       "cur": "Welcome to our Q3 26 QGS."
     },
     {
@@ -443,7 +443,7 @@
       "punct": false,
       "decide": true,
       "ref_count": 1,
-      "prev": " everyone. Good morning. Let's get started. So, welcome",
+      "prev": " everyone. [会议句 idx 54]. Let's get started. So, welcome",
       "cur": "Welcome to our Q3 26 QGS."
     },
     {

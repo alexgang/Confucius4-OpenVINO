@@ -30,7 +30,7 @@
 
 | 草稿 | 现版（错） | 候选（对） |
 |---|---|---|
-| `DRAFT::Okay`（seg 6） | seg 39 `Okay, next slide.`（跨 **33** 段） | seg 8 `Okay So you recall, Alex spoke about business growth…`（跨 **2** 段） |
+| `DRAFT::Okay`（seg 6） | seg 39 `[会议句 idx 111].`（跨 **33** 段） | seg 8 `Okay So you recall, Alex spoke about business growth…`（跨 **2** 段） |
 | `DRAFT::That`（seg 22） | seg 107 `That's where we are today.`（跨 **85** 段） | seg 23 `That Could be in situations like chipsets…`（跨 **1** 段） |
 
 ====================================================================

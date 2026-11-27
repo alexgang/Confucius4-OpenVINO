@@ -177,7 +177,7 @@
    "[gpu_int8] 加载 4.9 s，设备 GPU.0，识别语种 自动检测"
   ],
   "mt_ready_lines": [
-   "[实时] All right. Good morning, everyone.  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 4.3 s）"
+   "[实时] All right. [会议句 idx 55].  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 4.3 s）"
   ],
   "worker_failure_lines": [],
   "n_lines_total": 3060
@@ -340,7 +340,7 @@
    "[gpu_int8] 加载 4.9 s，设备 GPU.0，识别语种 自动检测"
   ],
   "mt_ready_lines": [
-   "[实时] All right. Good morning, everyone.  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 4.3 s）"
+   "[实时] All right. [会议句 idx 55].  [翻译] 翻译模型就绪（自动 · INT8-CW 模型（默认） · NPU，加载 4.3 s）"
   ]
  },
  "backlog_cleared_rel_s": null,
@@ -498,7 +498,7 @@
     "speed": 1.7,
     "speed_label": "真实倍率 1.7000×",
     "in_target_band": true,
-    "text": "但为了继续前进，一些我们目前没有的能力也是必要的。",
+    "text": "[会议句 idx 258]。",
     "t0": 485.25,
     "t1": 488.19,
     "out_dur_s": 2.94,

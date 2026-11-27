@@ -112,8 +112,8 @@ last_ack: ASR-031
 ```
 fix  | So, welcome | So, welcome Welcome to our Q3 26 [REDACTED].
 half | Welcome to our Q3 26 [REDACTED].
-fix  | So, welcome | So, welcome Agenda topics today.   ← 已闭合的链首被再次修正
-half | Agenda topics today.
+fix  | So, welcome | So, welcome [会议句 idx 6].   ← 已闭合的链首被再次修正
+half | [会议句 idx 6].
 ```
 
 **根因**：**半句链闭合后 `self._half` 未被清空**。本段没有产生新半句时，`self._half`
@@ -176,7 +176,7 @@ half | Agenda topics today.
 - **客户包代码上的行为验证**（假引擎，直接 `import` 客户包的 `translator.py`）：
   ```
   half  ZH:So welcome                ← 段尾半句当段即翻、只显示
-  final ZH:Good morning everyone.
+  final ZH:[会议句 idx 55].
   final ZH:Let us start.
   fix   ZH:So welcome to our Q3 meeting.   ← 补全后整句原地覆盖
   half  ZH:to our Q3 meeting.
@@ -417,7 +417,7 @@ HEAD 版 app 里**没有 `tts` 变量**，带 `tts.submit` 引用会 NameError�
 **④ 客户包代码上的行为验证**（直接 import `Confucius4_LiveCaption_v1.3/app/translator.py`）
 ```
 half  ZH:So welcome                ← 段尾半句当段即翻、只显示
-final ZH:Good morning everyone.
+final ZH:[会议句 idx 55].
 fix   ZH:So welcome to our Q3 meeting.   ← 补全后整句原地覆盖
 half  ZH:to our Q3 meeting.
 final ZH:Then we cover AI.
@@ -2011,7 +2011,7 @@ OV left vs right 的 logits cos = **−0.154354** ⇒ 两者语义完全不同�
 3. **flush 必须以 `raw` 为前缀**（否则模型从头重生成 ⇒ 每段内容重复两遍，实测过）
 
 ⇒ 修正后 30 秒冒烟：5 段文本与 P0 torch 参照**逐段一致**
-（`All right. Good morning, everyone. Good morning. Let's get started. So, we.` /
+（`All right. [会议句 idx 55]. [会议句 idx 54]. Let's get started. So, we.` /
 `Welcome to our Q326 QGS.`）⇒ **INT8 量化后文本质量正常（GPU 路径）**。
 
 ### 18.3 ✅ NPU 阻塞解除（encoder 动态形状）
@@ -2069,7 +2069,7 @@ fp16 常量，且**全局去重会误判 cycle**，须按路径去重）；数�
 | encoder | decoder | 端到端结果 |
 |---|---|---|
 | fp16 | **fp16** | ❌ 西里尔文乱码 `šĺģš⇐търьььььььььььььь` |
-| fp16 | **int8** | ✅ `All right. Good morning, everyone. Good morning. Let's get started. So, we.` |
+| fp16 | **int8** | ✅ `All right. [会议句 idx 55]. [会议句 idx 54]. Let's get started. So, we.` |
 | int8 | fp16 | ❌ 乱码 `deššššššššššššššššš` |
 | int8 | int8 | ✅ 正常 |
 
@@ -2212,7 +2212,7 @@ argmax  = [97622, 97622, 97622, 97622, 4824, 97622, 4824, 4824, ... ×20]
 
 ### 19.7 ⚠️ P3 61 分钟长跑（GPU.0 + INT8 enc + INT8 dec）的计时口径**作废**
 * 产物：`qwen3asr_06b/results/p3_p3_61min_gpu_int8/segments.jsonl`（**13:05 时 67 段 → 13:38 时 254 段**，
-  文本持续为正常英文，如 `Moving forward. Okay, next slide. Alex, share this…`）。
+  文本持续为正常英文，如 `[会议句 idx 96]. [会议句 idx 111]. Alex, share this…`）。
 * 🔴 **`timing_valid = false`**：本作业 **12:56** 启动时 `shared/MACHINE_LOCK` **已被 `mt` 模块占用**
   （内容 `module: mt / pid: 34440 / started: 2026-10-25 11:19:54`，进程存活，
   命令行 `_run_h016_v5_batches.py`）⇒ **计时被其它模块干扰**
@@ -2249,16 +2249,16 @@ CPU、每步 8 token 贪心、6 步；`fixed` = 固定 6.4 s 音频，`cum1` = �
 `cumN` = 累积到 n×0.64 s；`prefix` = 是否启用「回退 5 token 前缀」。
 | 图 | 模式 | prefix | step1 (L=26) | step2 | step4 | step6 | 判定 |
 |---|---|---|---|---|---|---|---|
-| **fp16** | fixed (L=101) | ✗ | `all right good morning everyone…` | 同上 | 同上 | 同上 | ✅ **正常** |
-| **fp16** | fixed (L=101) | ✓ | `all right good morning…` | ` morning everyone…` | ` get started so very very very` | ` very very very…` | ⚠️ **退化**（`very` 复读） |
+| **fp16** | fixed (L=101) | ✗ | `all right [会议句 idx 55]…` | 同上 | 同上 | 同上 | ✅ **正常** |
+| **fp16** | fixed (L=101) | ✓ | `all right [会议句 idx 54]…` | ` morning everyone…` | ` get started so very very very` | ` very very very…` | ⚠️ **退化**（`very` 复读） |
 | **fp16** | cum1 (L=26) | ✗ | `��ℿ�ℿ�` | 同上 | 同上 | 同上 | ❌ **乱码** |
 | **fp16** | cumN | ✗ | `��ℿ�ℿ�` | `��ℿ�` | `šĺģ�šĺģ�` | `š�ъразьшьь` | ❌ **乱码** |
 | **fp16** | cumN | ✓ | `��ℿ�ℿ�` | `��칩�ли` | `šĺģ�šĺģ�` | `ьъисъешьъеш` | ❌ **乱码** |
-| **int8** | fixed (L=101) | ✗ | `All right. Good morning everyone…` | 同上 | 同上 | 同上 | ✅ **正常** |
-| **int8** | fixed (L=101) | ✓ | `All right. Good morning…` | ` Good morning everyone…` | `. Let get started. So well.` | ` started. So well.` | ✅ **正常** |
+| **int8** | fixed (L=101) | ✗ | `All right. [会议句 idx 55]…` | 同上 | 同上 | 同上 | ✅ **正常** |
+| **int8** | fixed (L=101) | ✓ | `All right. [会议句 idx 54]…` | ` [会议句 idx 55]…` | `. Let get started. So well.` | ` started. So well.` | ✅ **正常** |
 | **int8** | cum1 (L=26) | ✗ | **`��系统。`** | 同上 | 同上 | 同上 | ❌ **乱码（INT8 也乱码！）** |
-| **int8** | cumN | ✗ | `��系统。` | `System.` | `All right. Good morning.` | `All right. Good morning everyone. Good` | ✅ **正常** |
-| **int8** | cumN | ✓ | `��系统。` | `System.` | `All right. Good morning.` | `. Good morning everyone. Good morning.` | ✅ **正常** |
+| **int8** | cumN | ✗ | `��系统。` | `System.` | `All right. [会议句 idx 54].` | `All right. [会议句 idx 55]. Good` | ✅ **正常** |
+| **int8** | cumN | ✓ | `��系统。` | `System.` | `All right. [会议句 idx 54].` | `. [会议句 idx 55]. [会议句 idx 54].` | ✅ **正常** |
 
 ⇒ **结论 1**：**L=26（0.64 s）时 FP16 与 INT8 都输出乱码**
 （FP16 `��ℿ�ℿ�` / INT8 `��系统。`）⇒ **短输入退化不是量化问题**
@@ -2742,9 +2742,9 @@ padding 行的输出**不参与**位置 511 的 logits ⇒ **与 torch 标准 ma
 
 | 模式 | 图 | 输出文本 | 退化 | 拉丁比 |
 |---|---|---|---|---|
-| fixed6.4s | fp16_old | `all right good morning everyone good morning let's get` | 否 | 0.9815 |
-| fixed6.4s | int8_old | `All right. Good morning everyone. Good morning.` | 否 | 0.9362 |
-| fixed6.4s | **mask2_new** | **`Alright. Good morning, everyone. Good morning.`** | 否 | 0.9130 |
+| fixed6.4s | fp16_old | `all right [会议句 idx 55] [会议句 idx 54] let's get` | 否 | 0.9815 |
+| fixed6.4s | int8_old | `All right. [会议句 idx 55]. [会议句 idx 54].` | 否 | 0.9362 |
+| fixed6.4s | **mask2_new** | **`Alright. [会议句 idx 55]. [会议句 idx 54].`** | 否 | 0.9130 |
 | cum10×0.64s | fp16_old | 同上 | 否 | 0.9815 |
 | cum10×0.64s | int8_old | 同上 | 否 | 0.9362 |
 | cum10×0.64s | **mask2_new** | **同 mask2** | 否 | 0.9130 |
@@ -3053,9 +3053,9 @@ NPU 编译是 **CPU 密集**（147–222 s 满载）⇒ **可能轻微影响 MT 
 `results/p3_mask2_61min_fp16/segments.jsonl`（20:45，33 段已落盘）**首段文本实测**：
 
 ```
-[  0.00-  6.40] rule1 :: All right. Good morning, everyone. Good morning. Let's get started. So well.
+[  0.00-  6.40] rule1 :: All right. [会议句 idx 55]. [会议句 idx 54]. Let's get started. So well.
 [  6.40- 10.24] rule2 :: Welcome to our Q three twenty six QGS.
-[ 10.24- 16.64] rule1 :: Agenda topics today. We'll talk about three. One. I want to share our engineering strate…
+[ 10.24- 16.64] rule1 :: [会议句 idx 6]. We'll talk about three. One. I want to share our engineering strate…
 [208.64-215.04] rule1 :: Through this model, software I want still Lisa's thunder. She'll come and talk about the…
 ```
 
@@ -3429,8 +3429,8 @@ INT4 **11.57%**，Δ **+0.63pp**，CI **[+0.16, +1.10]**，重采样 5000 次，
 
 | 变体 | `has_mask_port` | `mask_mismatch_count` | `any_degenerate` | `final_text` |
 |---|---|---|---|---|
-| `mask2_int8` | true | **0** | **false** | `All right. Good morning, everyone. Good morning. Let's get started. So welcome to our Q three.` |
-| `mask2_int4` | true | **0** | **false** | `Alright. Good morning, everyone. Good morning. Let's get started. So welcome to our Q three.` |
+| `mask2_int8` | true | **0** | **false** | `All right. [会议句 idx 55]. [会议句 idx 54]. Let's get started. So welcome to our Q three.` |
+| `mask2_int4` | true | **0** | **false** | `Alright. [会议句 idx 55]. [会议句 idx 54]. Let's get started. So welcome to our Q three.` |
 | `mask2_fp16` | true | **0** | **false** | 与 `mask2_int8` **逐字相同** |
 
 ⇒ ★ **12 步逐步 `mask_ok=True`**（`am.sum() == L`，即「有效位计数 = 实际内容长度」）⇒
@@ -3857,8 +3857,8 @@ to global declaration`）。
 ### 30.11 ✅ R2T2 App 转写脚本冒烟通过（`gpu_int8` 档，1 分钟切片）
 `asr007_r2t2_app_transcribe.py --engine gpu_int8 --minutes 1` ⇒
 **10 段 / 162 词**、`rule_counts {rule1: 8, rule2: 1, short_flush: 1}`、
-`load_s 11.9` / `wall_s 83.4` / `rtf 1.3908`；文本**通顺无复读**（"Good morning
-everyone. Good morning. Let's get started…"）⇒ 脚本逻辑与真实 App 路径对齐。
+`load_s 11.9` / `wall_s 83.4` / `rtf 1.3908`；文本**通顺无复读**（"[会议句 idx 54]
+everyone. [会议句 idx 54]. Let's get started…"）⇒ 脚本逻辑与真实 App 路径对齐。
 ⚠️ 用的是 **GPU.0** 档（NPU 档与正在跑的 0.6B 长跑**抢 NPU**）
 ⇒ 只验证脚本逻辑，**不作交付数据**。
 

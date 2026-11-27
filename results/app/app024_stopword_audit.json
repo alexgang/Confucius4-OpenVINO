@@ -112,7 +112,7 @@
         "rule": "rule1",
         "word": "Welcome",
         "norm": "welcome",
-        "prev": "Good morning everyone. Good morning. Let's get started. So, welcome",
+        "prev": "[会议句 idx 55]. [会议句 idx 54]. Let's get started. So, welcome",
         "cur": "Welcome to our Q3 26 QGS."
       },
       {
@@ -391,7 +391,7 @@
         "rule": "rule1",
         "word": "Welcome",
         "norm": "welcome",
-        "prev": "Good morning everyone. Good morning. Let's get started. So, welcome",
+        "prev": "[会议句 idx 55]. [会议句 idx 54]. Let's get started. So, welcome",
         "cur": "Welcome to our Q3 26 QGS."
       },
       {

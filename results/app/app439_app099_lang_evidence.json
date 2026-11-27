@@ -163,7 +163,7 @@
   "wav_is_chinese_tts": true,
   "asr_output": "results/app/app415_rc6_langs/de/subtitles.txt",
   "asr_output_n_lines": 3,
-  "asr_output_first_line": "只需要两分钟，当邮件不断涌入时，它能让我保持专注。诀窍在于将新习惯与你已经做的事情联系起来，比如煮咖啡。",
+  "asr_output_first_line": "[会议句 idx 290]。[会议句 idx 505]。",
   "app419_per_lang": {
    "zh": {
     "n_source_sentences": 5,

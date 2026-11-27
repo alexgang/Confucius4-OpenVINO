@@ -7,7 +7,7 @@
    "sr": 24000,
    "samples": 347520,
    "dur_s": 14.48,
-   "text": "Solo toman dos minutos; cuando llegan constantemente correos electrónicos, me permite mantener mi concentración. El truco está en relacionar la nueva costumbre con las cosas que ya haces, como por ejemplo, hacer café.",
+   "text": "[会议句 idx 141]. [会议句 idx 45].",
    "end_reason": null
   },
   {
@@ -15,7 +15,7 @@
    "sr": 24000,
    "samples": 420480,
    "dur_s": 17.52,
-   "text": "No se necesita voluntad, solo un factor desencadenante que ya existe. Mi equipo: cada mañana tenemos reuniones en pie breves, lo cual es más efectivo que las revisiones largas y detalladas semanalmente. Cada persona cuenta lo que hizo ayer, lo que hará hoy, y si hay algo que les obstaculice.",
+   "text": "[会议句 idx 98]. [会议句 idx 95]. [会议句 idx 33].",
    "end_reason": null
   }
  ],

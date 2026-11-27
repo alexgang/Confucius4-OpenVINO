@@ -1,0 +1,2430 @@
+{
+ "script": "_app249_desen_apply_full.py",
+ "dry_run": false,
+ "method": "归一化 + 索引映射 ⇒ 精确替换命中 span（长句优先、互不重叠）",
+ "n_gt_sentences": 571,
+ "n_target_files": 121,
+ "n_changed_files": 121,
+ "n_replacements": 1987,
+ "n_json_parsed_ok": 63,
+ "json_prebroken": [],
+ "n_skipped_no_match": 0,
+ "backup_dir": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup",
+ "changed": [
+  {
+   "file": "README.md",
+   "n_repl": 1,
+   "bytes_before": 46503,
+   "bytes_after": 46500,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\README.md"
+  },
+  {
+   "file": "results/app/_app065_status_backup.md",
+   "n_repl": 2,
+   "bytes_before": 814022,
+   "bytes_after": 814028,
+   "idx_used": [
+    111
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app___app065_status_backup.md"
+  },
+  {
+   "file": "results/app/_app551_A_mt_npu_tts_off_out.txt",
+   "n_repl": 28,
+   "bytes_before": 9891,
+   "bytes_after": 9399,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    39,
+    43,
+    46,
+    54,
+    55,
+    56,
+    83,
+    96,
+    103,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app___app551_A_mt_npu_tts_off_out.txt"
+  },
+  {
+   "file": "results/app/_app551_B_mt_gpu0_tts_cuda_out.txt",
+   "n_repl": 28,
+   "bytes_before": 9891,
+   "bytes_after": 9399,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    39,
+    43,
+    46,
+    54,
+    55,
+    56,
+    83,
+    96,
+    103,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app___app551_B_mt_gpu0_tts_cuda_out.txt"
+  },
+  {
+   "file": "results/app/_app551_C_mt_npu_tts_cuda_out.txt",
+   "n_repl": 28,
+   "bytes_before": 9891,
+   "bytes_after": 9399,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    39,
+    43,
+    46,
+    54,
+    55,
+    56,
+    83,
+    96,
+    103,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app___app551_C_mt_npu_tts_cuda_out.txt"
+  },
+  {
+   "file": "results/app/_sec44_body.md",
+   "n_repl": 2,
+   "bytes_before": 16663,
+   "bytes_after": 16669,
+   "idx_used": [
+    111
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app___sec44_body.md"
+  },
+  {
+   "file": "results/app/app024_seam_guard_design.json",
+   "n_repl": 2,
+   "bytes_before": 29328,
+   "bytes_after": 29340,
+   "idx_used": [
+    54
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app024_seam_guard_design.json"
+  },
+  {
+   "file": "results/app/app024_seam_rule_design.json",
+   "n_repl": 2,
+   "bytes_before": 27457,
+   "bytes_after": 27469,
+   "idx_used": [
+    54
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app024_seam_rule_design.json"
+  },
+  {
+   "file": "results/app/app024_stopword_audit.json",
+   "n_repl": 4,
+   "bytes_before": 21546,
+   "bytes_after": 21552,
+   "idx_used": [
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app024_stopword_audit.json"
+  },
+  {
+   "file": "results/app/app028_soak_60s/app028_subtitles.txt",
+   "n_repl": 5,
+   "bytes_before": 888,
+   "bytes_after": 879,
+   "idx_used": [
+    6,
+    46,
+    54,
+    55,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app028_soak_60s__app028_subtitles.txt"
+  },
+  {
+   "file": "results/app/app042_soak_run4/app042_subtitles.txt",
+   "n_repl": 14,
+   "bytes_before": 4704,
+   "bytes_after": 4534,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app042_soak_run4__app042_subtitles.txt"
+  },
+  {
+   "file": "results/app/app053_m9_assertion_candidate.txt",
+   "n_repl": 1,
+   "bytes_before": 5564,
+   "bytes_after": 5567,
+   "idx_used": [
+    111
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app053_m9_assertion_candidate.txt"
+  },
+  {
+   "file": "results/app/app121_accept_v111_chain.json",
+   "n_repl": 1,
+   "bytes_before": 32202,
+   "bytes_after": 32185,
+   "idx_used": [
+    385
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app121_accept_v111_chain.json"
+  },
+  {
+   "file": "results/app/app121_accept_v111_devswitch.json",
+   "n_repl": 33,
+   "bytes_before": 29432,
+   "bytes_after": 29252,
+   "idx_used": [
+    46,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app121_accept_v111_devswitch.json"
+  },
+  {
+   "file": "results/app/app121_asr_app_3mat_GPU0.json",
+   "n_repl": 26,
+   "bytes_before": 56815,
+   "bytes_after": 56403,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    39,
+    43,
+    46,
+    54,
+    55,
+    56,
+    83,
+    96,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app121_asr_app_3mat_GPU0.json"
+  },
+  {
+   "file": "results/app/app121_asr_app_3mat_GPU0_OLD_v11.json",
+   "n_repl": 26,
+   "bytes_before": 56805,
+   "bytes_after": 56393,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    39,
+    43,
+    46,
+    54,
+    55,
+    56,
+    83,
+    96,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app121_asr_app_3mat_GPU0_OLD_v11.json"
+  },
+  {
+   "file": "results/app/app121_asr_app_3mat_NPU.json",
+   "n_repl": 23,
+   "bytes_before": 56845,
+   "bytes_after": 56458,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    43,
+    46,
+    54,
+    55,
+    56,
+    96,
+    111,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app121_asr_app_3mat_NPU.json"
+  },
+  {
+   "file": "results/app/app121_asr_npu_longseg_new_v111.json",
+   "n_repl": 4,
+   "bytes_before": 6744,
+   "bytes_after": 6730,
+   "idx_used": [
+    6,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app121_asr_npu_longseg_new_v111.json"
+  },
+  {
+   "file": "results/app/app121_asr_npu_longseg_old_v11.json",
+   "n_repl": 8,
+   "bytes_before": 8309,
+   "bytes_after": 8289,
+   "idx_used": [
+    6,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app121_asr_npu_longseg_old_v11.json"
+  },
+  {
+   "file": "results/app/app127_c111_real_timing_draft_lines_evidence.json",
+   "n_repl": 1,
+   "bytes_before": 16442,
+   "bytes_after": 16439,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app127_c111_real_timing_draft_lines_evidence.json"
+  },
+  {
+   "file": "results/app/app128b_e2e7_src/off_bgkeep_e2e.json",
+   "n_repl": 6,
+   "bytes_before": 30897,
+   "bytes_after": 30898,
+   "idx_used": [
+    6,
+    54,
+    55,
+    91
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app128b_e2e7_src__off_bgkeep_e2e.json"
+  },
+  {
+   "file": "results/app/app128b_e2e7_src/on_cpu_bgkeep_e2e.json",
+   "n_repl": 6,
+   "bytes_before": 31403,
+   "bytes_after": 31404,
+   "idx_used": [
+    6,
+    54,
+    55,
+    91
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app128b_e2e7_src__on_cpu_bgkeep_e2e.json"
+  },
+  {
+   "file": "results/app/app128b_e2e7_src/on_gpu_bgkeep_e2e.json",
+   "n_repl": 6,
+   "bytes_before": 31432,
+   "bytes_after": 31433,
+   "idx_used": [
+    6,
+    54,
+    55,
+    91
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app128b_e2e7_src__on_gpu_bgkeep_e2e.json"
+  },
+  {
+   "file": "results/app/app129_chain_v26_evidence.json",
+   "n_repl": 4,
+   "bytes_before": 25976,
+   "bytes_after": 25826,
+   "idx_used": [
+    111,
+    246,
+    335,
+    525
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app129_chain_v26_evidence.json"
+  },
+  {
+   "file": "results/app/app133_chain_v26_evidence.json",
+   "n_repl": 6,
+   "bytes_before": 263118,
+   "bytes_after": 262936,
+   "idx_used": [
+    174,
+    423,
+    510,
+    525,
+    556
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app133_chain_v26_evidence.json"
+  },
+  {
+   "file": "results/app/app171_app027_v3_cer_compare_evidence.json",
+   "n_repl": 286,
+   "bytes_before": 69483,
+   "bytes_after": 53337,
+   "idx_used": [
+    106,
+    227,
+    232,
+    234,
+    237,
+    242,
+    245,
+    249,
+    252,
+    260,
+    262,
+    264,
+    267,
+    269,
+    276,
+    278,
+    280,
+    294,
+    299,
+    303,
+    305,
+    315,
+    317,
+    335,
+    345,
+    352,
+    359,
+    374,
+    380,
+    399,
+    401,
+    416,
+    422,
+    427,
+    438,
+    442,
+    446,
+    451,
+    466,
+    474,
+    476,
+    490,
+    514,
+    516,
+    523,
+    528,
+    531,
+    538,
+    548,
+    550,
+    561,
+    564
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app171_app027_v3_cer_compare_evidence.json"
+  },
+  {
+   "file": "results/app/app199_app054_ab_evidence.json",
+   "n_repl": 18,
+   "bytes_before": 10373,
+   "bytes_after": 10191,
+   "idx_used": [
+    38,
+    189
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app199_app054_ab_evidence.json"
+  },
+  {
+   "file": "results/app/app273_mt_int4_vs_int8_evidence.json",
+   "n_repl": 16,
+   "bytes_before": 9293,
+   "bytes_after": 8889,
+   "idx_used": [
+    6,
+    46,
+    54,
+    55,
+    112,
+    188,
+    194,
+    272,
+    303,
+    322,
+    345,
+    346,
+    416,
+    493,
+    516
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app273_mt_int4_vs_int8_evidence.json"
+  },
+  {
+   "file": "results/app/app274_app069_loader_fix_evidence.json",
+   "n_repl": 2,
+   "bytes_before": 1863,
+   "bytes_after": 1866,
+   "idx_used": [
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app274_app069_loader_fix_evidence.json"
+  },
+  {
+   "file": "results/app/app294_rc4_npu_acceptance_evidence.json",
+   "n_repl": 40,
+   "bytes_before": 19225,
+   "bytes_after": 18735,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app294_rc4_npu_acceptance_evidence.json"
+  },
+  {
+   "file": "results/app/app294_rc4_npu_out/igpu/transcript.txt",
+   "n_repl": 14,
+   "bytes_before": 4704,
+   "bytes_after": 4534,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app294_rc4_npu_out__igpu__transcript.txt"
+  },
+  {
+   "file": "results/app/app294_rc4_npu_out/npu/transcript.txt",
+   "n_repl": 13,
+   "bytes_before": 4699,
+   "bytes_after": 4539,
+   "idx_used": [
+    6,
+    7,
+    17,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app294_rc4_npu_out__npu__transcript.txt"
+  },
+  {
+   "file": "results/app/app294_rc4_npu_out/npu_full/transcript.txt",
+   "n_repl": 13,
+   "bytes_before": 4699,
+   "bytes_after": 4539,
+   "idx_used": [
+    6,
+    7,
+    17,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app294_rc4_npu_out__npu_full__transcript.txt"
+  },
+  {
+   "file": "results/app/app294_rc4_npu_out/npu_full/tts.jsonl",
+   "n_repl": 51,
+   "bytes_before": 105128,
+   "bytes_after": 102190,
+   "idx_used": [
+    35,
+    105,
+    228,
+    229,
+    236,
+    243,
+    248,
+    253,
+    270,
+    279,
+    282,
+    300,
+    302,
+    304,
+    310,
+    311,
+    314,
+    322,
+    327,
+    328,
+    333,
+    336,
+    345,
+    346,
+    356,
+    363,
+    392,
+    398,
+    400,
+    412,
+    418,
+    421,
+    425,
+    428,
+    436,
+    440,
+    445,
+    462,
+    477,
+    480,
+    491,
+    501,
+    504,
+    512,
+    521,
+    526,
+    529,
+    537,
+    541,
+    549,
+    551
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app294_rc4_npu_out__npu_full__tts.jsonl"
+  },
+  {
+   "file": "results/app/app312_rc5_out/gpu/acceptance.json",
+   "n_repl": 4,
+   "bytes_before": 2855,
+   "bytes_after": 2852,
+   "idx_used": [
+    6,
+    54,
+    55,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app312_rc5_out__gpu__acceptance.json"
+  },
+  {
+   "file": "results/app/app312_rc5_out/gpu/transcript.txt",
+   "n_repl": 17,
+   "bytes_before": 4701,
+   "bytes_after": 4390,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    103,
+    111,
+    112,
+    137,
+    170,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app312_rc5_out__gpu__transcript.txt"
+  },
+  {
+   "file": "results/app/app312_rc5_out/npu/acceptance.json",
+   "n_repl": 4,
+   "bytes_before": 2854,
+   "bytes_after": 2851,
+   "idx_used": [
+    6,
+    54,
+    55,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app312_rc5_out__npu__acceptance.json"
+  },
+  {
+   "file": "results/app/app312_rc5_out/npu/transcript.txt",
+   "n_repl": 16,
+   "bytes_before": 4703,
+   "bytes_after": 4408,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    103,
+    111,
+    137,
+    170,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app312_rc5_out__npu__transcript.txt"
+  },
+  {
+   "file": "results/app/app326_app097_lang_acceptance.json",
+   "n_repl": 24,
+   "bytes_before": 353588,
+   "bytes_after": 352253,
+   "idx_used": [
+    215,
+    290,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app326_app097_lang_acceptance.json"
+  },
+  {
+   "file": "results/app/app326_app097_lang_out/mt.json",
+   "n_repl": 20,
+   "bytes_before": 122674,
+   "bytes_after": 121557,
+   "idx_used": [
+    215,
+    290,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app326_app097_lang_out__mt.json"
+  },
+  {
+   "file": "results/app/app326_app097_lang_out/tts.json",
+   "n_repl": 4,
+   "bytes_before": 214657,
+   "bytes_after": 214439,
+   "idx_used": [
+    215,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app326_app097_lang_out__tts.json"
+  },
+  {
+   "file": "results/app/app332_v23_cli.json",
+   "n_repl": 1,
+   "bytes_before": 4651,
+   "bytes_after": 4649,
+   "idx_used": [
+    6
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app332_v23_cli.json"
+  },
+  {
+   "file": "results/app/app332_v23_cli_final.txt",
+   "n_repl": 14,
+   "bytes_before": 4707,
+   "bytes_after": 4537,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app332_v23_cli_final.txt"
+  },
+  {
+   "file": "results/app/app332_v23_cli_output.txt",
+   "n_repl": 74,
+   "bytes_before": 43114,
+   "bytes_after": 42649,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app332_v23_cli_output.txt"
+  },
+  {
+   "file": "results/app/app337_r1_partial_output.txt",
+   "n_repl": 130,
+   "bytes_before": 106296,
+   "bytes_after": 102512,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194,
+    227,
+    232,
+    234,
+    237,
+    242,
+    245,
+    249,
+    252,
+    260,
+    262,
+    264,
+    267,
+    269,
+    276,
+    278,
+    280,
+    294,
+    299,
+    303,
+    305,
+    315,
+    317,
+    335,
+    345,
+    347,
+    352,
+    359,
+    380,
+    399,
+    401,
+    416,
+    422,
+    427,
+    438,
+    442,
+    446,
+    451,
+    466,
+    474,
+    476,
+    490,
+    501,
+    514,
+    516,
+    523,
+    528,
+    531,
+    538,
+    548,
+    550,
+    561,
+    564
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app337_r1_partial_output.txt"
+  },
+  {
+   "file": "results/app/app337_r1_partial_tts.jsonl",
+   "n_repl": 42,
+   "bytes_before": 67796,
+   "bytes_after": 65138,
+   "idx_used": [
+    232,
+    242,
+    245,
+    249,
+    252,
+    260,
+    262,
+    264,
+    267,
+    269,
+    276,
+    278,
+    280,
+    294,
+    303,
+    305,
+    315,
+    317,
+    345,
+    347,
+    352,
+    380,
+    399,
+    401,
+    416,
+    422,
+    438,
+    442,
+    446,
+    466,
+    474,
+    476,
+    490,
+    514,
+    516,
+    523,
+    528,
+    531,
+    538,
+    548,
+    561,
+    564
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app337_r1_partial_tts.jsonl"
+  },
+  {
+   "file": "results/app/app337_v23_cli_rerun_final.txt",
+   "n_repl": 14,
+   "bytes_before": 4707,
+   "bytes_after": 4537,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app337_v23_cli_rerun_final.txt"
+  },
+  {
+   "file": "results/app/app337_v23_cli_rerun_output.txt",
+   "n_repl": 133,
+   "bytes_before": 121144,
+   "bytes_after": 117305,
+   "idx_used": [
+    6,
+    7,
+    17,
+    38,
+    46,
+    54,
+    55,
+    96,
+    106,
+    111,
+    112,
+    178,
+    188,
+    189,
+    194,
+    227,
+    232,
+    234,
+    237,
+    242,
+    245,
+    249,
+    252,
+    260,
+    262,
+    264,
+    267,
+    269,
+    276,
+    278,
+    280,
+    294,
+    299,
+    303,
+    305,
+    315,
+    317,
+    335,
+    345,
+    347,
+    352,
+    359,
+    374,
+    380,
+    399,
+    401,
+    416,
+    422,
+    427,
+    438,
+    442,
+    446,
+    451,
+    466,
+    474,
+    476,
+    490,
+    514,
+    516,
+    523,
+    528,
+    531,
+    538,
+    548,
+    550,
+    553,
+    561,
+    564
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app337_v23_cli_rerun_output.txt"
+  },
+  {
+   "file": "results/app/app337_v23_cli_rerun_tts.jsonl",
+   "n_repl": 51,
+   "bytes_before": 85986,
+   "bytes_after": 83002,
+   "idx_used": [
+    106,
+    227,
+    232,
+    234,
+    242,
+    245,
+    249,
+    252,
+    260,
+    262,
+    264,
+    267,
+    269,
+    276,
+    278,
+    280,
+    294,
+    299,
+    303,
+    305,
+    315,
+    317,
+    335,
+    345,
+    347,
+    352,
+    359,
+    374,
+    380,
+    399,
+    401,
+    416,
+    422,
+    427,
+    438,
+    442,
+    446,
+    451,
+    466,
+    474,
+    476,
+    490,
+    514,
+    516,
+    523,
+    528,
+    531,
+    538,
+    548,
+    550,
+    561
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app337_v23_cli_rerun_tts.jsonl"
+  },
+  {
+   "file": "results/app/app383_ratefix_defect/tts_dialog3_partial.jsonl",
+   "n_repl": 5,
+   "bytes_before": 105771,
+   "bytes_after": 105419,
+   "idx_used": [
+    215,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app383_ratefix_defect__tts_dialog3_partial.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/de/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__de__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/de/tts.jsonl",
+   "n_repl": 5,
+   "bytes_before": 4330,
+   "bytes_after": 3897,
+   "idx_used": [
+    41,
+    47,
+    82,
+    93,
+    94
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__de__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/en/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__en__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/en/tts.jsonl",
+   "n_repl": 6,
+   "bytes_before": 5001,
+   "bytes_after": 4514,
+   "idx_used": [
+    29,
+    48,
+    97,
+    99,
+    116,
+    154
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__en__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/es/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__es__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/es/tts.jsonl",
+   "n_repl": 7,
+   "bytes_before": 5718,
+   "bytes_after": 5144,
+   "idx_used": [
+    33,
+    45,
+    86,
+    95,
+    98,
+    118,
+    141
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__es__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/fr/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__fr__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/fr/tts.jsonl",
+   "n_repl": 7,
+   "bytes_before": 5801,
+   "bytes_after": 5138,
+   "idx_used": [
+    34,
+    36,
+    68,
+    69,
+    85,
+    90,
+    102
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__fr__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/it/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__it__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/it/tts.jsonl",
+   "n_repl": 7,
+   "bytes_before": 5668,
+   "bytes_after": 5145,
+   "idx_used": [
+    28,
+    70,
+    87,
+    89,
+    100,
+    110,
+    117
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__it__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ja/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__ja__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ja/tts.jsonl",
+   "n_repl": 8,
+   "bytes_before": 5808,
+   "bytes_after": 5246,
+   "idx_used": [
+    209,
+    210,
+    211,
+    212,
+    213,
+    231,
+    457,
+    488
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__ja__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ko/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__ko__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ko/tts.jsonl",
+   "n_repl": 8,
+   "bytes_before": 5805,
+   "bytes_after": 5167,
+   "idx_used": [
+    1,
+    565,
+    566,
+    567,
+    568,
+    569,
+    570,
+    571
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__ko__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/pt/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__pt__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/pt/tts.jsonl",
+   "n_repl": 8,
+   "bytes_before": 5685,
+   "bytes_after": 5164,
+   "idx_used": [
+    3,
+    27,
+    108,
+    109,
+    119,
+    121,
+    142,
+    168
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__pt__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ru/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__ru__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/ru/tts.jsonl",
+   "n_repl": 8,
+   "bytes_before": 6268,
+   "bytes_after": 5163,
+   "idx_used": [
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__ru__tts.jsonl"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/summary.json",
+   "n_repl": 60,
+   "bytes_before": 15503,
+   "bytes_after": 11423,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__summary.json"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/zh/subtitles.txt",
+   "n_repl": 6,
+   "bytes_before": 576,
+   "bytes_after": 168,
+   "idx_used": [
+    215,
+    290,
+    293,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__zh__subtitles.txt"
+  },
+  {
+   "file": "results/app/app415_rc6_langs/zh/tts.jsonl",
+   "n_repl": 4,
+   "bytes_before": 5001,
+   "bytes_after": 4705,
+   "idx_used": [
+    215,
+    293,
+    430,
+    473
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app415_rc6_langs__zh__tts.jsonl"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct.json",
+   "n_repl": 54,
+   "bytes_before": 14179,
+   "bytes_after": 9583,
+   "idx_used": [
+    1,
+    3,
+    28,
+    33,
+    36,
+    42,
+    45,
+    47,
+    48,
+    68,
+    69,
+    70,
+    82,
+    84,
+    85,
+    87,
+    93,
+    95,
+    97,
+    98,
+    99,
+    100,
+    102,
+    107,
+    108,
+    109,
+    110,
+    121,
+    141,
+    142,
+    154,
+    168,
+    201,
+    202,
+    204,
+    205,
+    207,
+    208,
+    209,
+    211,
+    212,
+    213,
+    215,
+    290,
+    430,
+    457,
+    473,
+    488,
+    505,
+    565,
+    566,
+    569,
+    570,
+    571
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/de/wavs.json",
+   "n_repl": 5,
+   "bytes_before": 3542,
+   "bytes_after": 3081,
+   "idx_used": [
+    42,
+    47,
+    82,
+    93,
+    107
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__de__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/en/wavs.json",
+   "n_repl": 5,
+   "bytes_before": 3460,
+   "bytes_after": 3079,
+   "idx_used": [
+    48,
+    84,
+    97,
+    99,
+    154
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__en__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/es/wavs.json",
+   "n_repl": 5,
+   "bytes_before": 3498,
+   "bytes_after": 3081,
+   "idx_used": [
+    33,
+    45,
+    95,
+    98,
+    141
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__es__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/fr/wavs.json",
+   "n_repl": 5,
+   "bytes_before": 3583,
+   "bytes_after": 3081,
+   "idx_used": [
+    36,
+    68,
+    69,
+    85,
+    102
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__fr__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/it/wavs.json",
+   "n_repl": 5,
+   "bytes_before": 3451,
+   "bytes_after": 3082,
+   "idx_used": [
+    28,
+    70,
+    87,
+    100,
+    110
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__it__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/ja/wavs.json",
+   "n_repl": 6,
+   "bytes_before": 3607,
+   "bytes_after": 3184,
+   "idx_used": [
+    209,
+    211,
+    212,
+    213,
+    457,
+    488
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__ja__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/ko/wavs.json",
+   "n_repl": 6,
+   "bytes_before": 3570,
+   "bytes_after": 3103,
+   "idx_used": [
+    1,
+    565,
+    566,
+    569,
+    570,
+    571
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__ko__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/pt/wavs.json",
+   "n_repl": 6,
+   "bytes_before": 3475,
+   "bytes_after": 3103,
+   "idx_used": [
+    3,
+    108,
+    109,
+    121,
+    142,
+    168
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__pt__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/ru/wavs.json",
+   "n_repl": 6,
+   "bytes_before": 3969,
+   "bytes_after": 3105,
+   "idx_used": [
+    201,
+    202,
+    204,
+    205,
+    207,
+    208
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__ru__wavs.json"
+  },
+  {
+   "file": "results/app/app418_rc6_tts_direct/zh/wavs.json",
+   "n_repl": 5,
+   "bytes_before": 3435,
+   "bytes_after": 3095,
+   "idx_used": [
+    215,
+    290,
+    430,
+    473,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app418_rc6_tts_direct__zh__wavs.json"
+  },
+  {
+   "file": "results/app/app419_rc6_langs_summary.json",
+   "n_repl": 73,
+   "bytes_before": 24469,
+   "bytes_after": 18313,
+   "idx_used": [
+    1,
+    3,
+    27,
+    28,
+    29,
+    33,
+    34,
+    36,
+    41,
+    42,
+    45,
+    47,
+    48,
+    68,
+    69,
+    70,
+    82,
+    84,
+    85,
+    86,
+    87,
+    89,
+    90,
+    93,
+    94,
+    95,
+    97,
+    98,
+    99,
+    100,
+    102,
+    107,
+    108,
+    109,
+    110,
+    116,
+    117,
+    118,
+    119,
+    121,
+    141,
+    142,
+    154,
+    168,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    211,
+    212,
+    213,
+    215,
+    231,
+    290,
+    293,
+    430,
+    457,
+    473,
+    488,
+    505,
+    565,
+    566,
+    567,
+    568,
+    569,
+    570,
+    571
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app419_rc6_langs_summary.json"
+  },
+  {
+   "file": "results/app/app419_rc6_langs_summary_payload.json",
+   "n_repl": 73,
+   "bytes_before": 23344,
+   "bytes_after": 17188,
+   "idx_used": [
+    1,
+    3,
+    27,
+    28,
+    29,
+    33,
+    34,
+    36,
+    41,
+    42,
+    45,
+    47,
+    48,
+    68,
+    69,
+    70,
+    82,
+    84,
+    85,
+    86,
+    87,
+    89,
+    90,
+    93,
+    94,
+    95,
+    97,
+    98,
+    99,
+    100,
+    102,
+    107,
+    108,
+    109,
+    110,
+    116,
+    117,
+    118,
+    119,
+    121,
+    141,
+    142,
+    154,
+    168,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    211,
+    212,
+    213,
+    215,
+    231,
+    290,
+    293,
+    430,
+    457,
+    473,
+    488,
+    505,
+    565,
+    566,
+    567,
+    568,
+    569,
+    570,
+    571
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app419_rc6_langs_summary_payload.json"
+  },
+  {
+   "file": "results/app/app439_app099_lang_evidence.json",
+   "n_repl": 2,
+   "bytes_before": 8342,
+   "bytes_after": 8230,
+   "idx_used": [
+    290,
+    505
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app439_app099_lang_evidence.json"
+  },
+  {
+   "file": "results/app/app458_app100_device/gpu_control_asr_npu.txt",
+   "n_repl": 25,
+   "bytes_before": 9889,
+   "bytes_after": 9422,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    43,
+    46,
+    54,
+    55,
+    56,
+    96,
+    103,
+    111,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app458_app100_device__gpu_control_asr_npu.txt"
+  },
+  {
+   "file": "results/app/app458_app100_device/gpu_same_asr_mt.txt",
+   "n_repl": 26,
+   "bytes_before": 9890,
+   "bytes_after": 9407,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    43,
+    46,
+    54,
+    55,
+    56,
+    96,
+    103,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app458_app100_device__gpu_same_asr_mt.txt"
+  },
+  {
+   "file": "results/app/app461_app100_device/gpu_control_asr_npu.txt",
+   "n_repl": 25,
+   "bytes_before": 9889,
+   "bytes_after": 9422,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    43,
+    46,
+    54,
+    55,
+    56,
+    96,
+    103,
+    111,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app461_app100_device__gpu_control_asr_npu.txt"
+  },
+  {
+   "file": "results/app/app461_app100_device/gpu_same_asr_mt.txt",
+   "n_repl": 26,
+   "bytes_before": 9890,
+   "bytes_after": 9407,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    43,
+    46,
+    54,
+    55,
+    56,
+    96,
+    103,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app461_app100_device__gpu_same_asr_mt.txt"
+  },
+  {
+   "file": "results/app/app501_app105_rc10_acceptance.json",
+   "n_repl": 3,
+   "bytes_before": 12205,
+   "bytes_after": 12205,
+   "idx_used": [
+    6,
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app501_app105_rc10_acceptance.json"
+  },
+  {
+   "file": "results/app/app501_app105_rc10_acceptance/chain10min.txt",
+   "n_repl": 28,
+   "bytes_before": 9891,
+   "bytes_after": 9399,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    39,
+    43,
+    46,
+    54,
+    55,
+    56,
+    83,
+    96,
+    103,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app501_app105_rc10_acceptance__chain10min.txt"
+  },
+  {
+   "file": "results/app/app526_app107_rc11_acceptance/chain10min.txt",
+   "n_repl": 28,
+   "bytes_before": 9891,
+   "bytes_after": 9399,
+   "idx_used": [
+    6,
+    7,
+    17,
+    21,
+    31,
+    38,
+    39,
+    43,
+    46,
+    54,
+    55,
+    56,
+    83,
+    96,
+    103,
+    111,
+    112,
+    127,
+    137,
+    158,
+    170,
+    174,
+    178,
+    180,
+    188,
+    189,
+    194,
+    198
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app526_app107_rc11_acceptance__chain10min.txt"
+  },
+  {
+   "file": "results/app/app551_open1_two_arm.json",
+   "n_repl": 3,
+   "bytes_before": 20151,
+   "bytes_after": 20120,
+   "idx_used": [
+    31,
+    482
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app551_open1_two_arm.json"
+  },
+  {
+   "file": "results/app/app582_specialmvp_sp3_acceptance.json",
+   "n_repl": 2,
+   "bytes_before": 14375,
+   "bytes_after": 14377,
+   "idx_used": [
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app582_specialmvp_sp3_acceptance.json"
+  },
+  {
+   "file": "results/app/app582_specialmvp_sp3_acceptance.run1.json",
+   "n_repl": 2,
+   "bytes_before": 13468,
+   "bytes_after": 13470,
+   "idx_used": [
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app582_specialmvp_sp3_acceptance.run1.json"
+  },
+  {
+   "file": "results/app/app588_sp4_acceptance_sp4_en.json",
+   "n_repl": 7,
+   "bytes_before": 15892,
+   "bytes_after": 15704,
+   "idx_used": [
+    40,
+    54,
+    55,
+    63,
+    125,
+    163,
+    194
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app588_sp4_acceptance_sp4_en.json"
+  },
+  {
+   "file": "results/app/app588_sp4_acceptance_sp4_zh.json",
+   "n_repl": 1,
+   "bytes_before": 16235,
+   "bytes_after": 16191,
+   "idx_used": [
+    439
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app588_sp4_acceptance_sp4_zh.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_app119_allnpu_run20261121-033422.json",
+   "n_repl": 2,
+   "bytes_before": 25077,
+   "bytes_after": 25069,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_app119_allnpu_run20261121-033422.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_app119_allnpu_run20261121-035443.json",
+   "n_repl": 1,
+   "bytes_before": 24975,
+   "bytes_after": 24958,
+   "idx_used": [
+    385
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_app119_allnpu_run20261121-035443.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_app119_allnpu_run20261121-040755.json",
+   "n_repl": 1,
+   "bytes_before": 25035,
+   "bytes_after": 25018,
+   "idx_used": [
+    385
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_app119_allnpu_run20261121-040755.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_app119_default_run20261121-030855.json",
+   "n_repl": 3,
+   "bytes_before": 25320,
+   "bytes_after": 25166,
+   "idx_used": [
+    385,
+    433,
+    449
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_app119_default_run20261121-030855.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_app119_default_run20261121-032253.json",
+   "n_repl": 3,
+   "bytes_before": 25144,
+   "bytes_after": 24981,
+   "idx_used": [
+    420,
+    486,
+    489
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_app119_default_run20261121-032253.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_app121_v111_default_run20261123-1000.json",
+   "n_repl": 1,
+   "bytes_before": 25524,
+   "bytes_after": 25507,
+   "idx_used": [
+    385
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_app121_v111_default_run20261123-1000.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_cold_zh_run20261117-093348.json",
+   "n_repl": 4,
+   "bytes_before": 21616,
+   "bytes_after": 21620,
+   "idx_used": [
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_sp5_cold_zh_run20261117-093348.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_en_run20261117-095732.json",
+   "n_repl": 7,
+   "bytes_before": 20774,
+   "bytes_after": 20655,
+   "idx_used": [
+    40,
+    50,
+    54,
+    55,
+    125
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_sp5_en_run20261117-095732.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_en_run20261117-101859.json",
+   "n_repl": 7,
+   "bytes_before": 22638,
+   "bytes_after": 22499,
+   "idx_used": [
+    40,
+    50,
+    54,
+    55,
+    125
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_sp5_en_run20261117-101859.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-094715.json",
+   "n_repl": 2,
+   "bytes_before": 20664,
+   "bytes_after": 20656,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_sp5_zh_run20261117-094715.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-094715_v2.json",
+   "n_repl": 2,
+   "bytes_before": 22909,
+   "bytes_after": 22901,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_sp5_zh_run20261117-094715_v2.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-100823.json",
+   "n_repl": 3,
+   "bytes_before": 22411,
+   "bytes_after": 22350,
+   "idx_used": [
+    55,
+    258
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_sp5_zh_run20261117-100823.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_sp5_zh_run20261117-100823_v2.json",
+   "n_repl": 3,
+   "bytes_before": 25377,
+   "bytes_after": 25316,
+   "idx_used": [
+    55,
+    258
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_sp5_zh_run20261117-100823_v2.json"
+  },
+  {
+   "file": "results/app/app591_acceptance_spsp5_zh_run20261117-140853.json",
+   "n_repl": 2,
+   "bytes_before": 25555,
+   "bytes_after": 25547,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__app591_acceptance_spsp5_zh_run20261117-140853.json"
+  },
+  {
+   "file": "results/app/render_layer_units_diag.json",
+   "n_repl": 2,
+   "bytes_before": 6218,
+   "bytes_after": 6212,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\results__app__render_layer_units_diag.json"
+  },
+  {
+   "file": "status/STATUS_ARCHIVE_2026-10.md",
+   "n_repl": 4,
+   "bytes_before": 160471,
+   "bytes_after": 160486,
+   "idx_used": [
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__STATUS_ARCHIVE_2026-10.md"
+  },
+  {
+   "file": "status/app/STATUS_APP_sec212_detail_20261116.md",
+   "n_repl": 2,
+   "bytes_before": 21454,
+   "bytes_after": 21407,
+   "idx_used": [
+    194,
+    439
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__app__STATUS_APP_sec212_detail_20261116.md"
+  },
+  {
+   "file": "status/app/STATUS_APP_sec213_detail_20261117.md",
+   "n_repl": 1,
+   "bytes_before": 22168,
+   "bytes_after": 22115,
+   "idx_used": [
+    258
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__app__STATUS_APP_sec213_detail_20261117.md"
+  },
+  {
+   "file": "status/app/STATUS_APP_sec221_detail_20261123.md",
+   "n_repl": 3,
+   "bytes_before": 24364,
+   "bytes_after": 24353,
+   "idx_used": [
+    6,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__app__STATUS_APP_sec221_detail_20261123.md"
+  },
+  {
+   "file": "status/archive/STATUS_APP_sec167_20261110.md",
+   "n_repl": 1,
+   "bytes_before": 12366,
+   "bytes_after": 12316,
+   "idx_used": [
+    215
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__archive__STATUS_APP_sec167_20261110.md"
+  },
+  {
+   "file": "status/archive/STATUS_APP_upto_20261030.md",
+   "n_repl": 2,
+   "bytes_before": 1437968,
+   "bytes_after": 1437974,
+   "idx_used": [
+    111
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__archive__STATUS_APP_upto_20261030.md"
+  },
+  {
+   "file": "status/archive/STATUS_ASR_upto_20261030.md",
+   "n_repl": 35,
+   "bytes_before": 731055,
+   "bytes_after": 731095,
+   "idx_used": [
+    6,
+    54,
+    55,
+    96,
+    111
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__archive__STATUS_ASR_upto_20261030.md"
+  },
+  {
+   "file": "status/asr/notes/asr_s83.md",
+   "n_repl": 1,
+   "bytes_before": 17339,
+   "bytes_after": 17336,
+   "idx_used": [
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__asr__notes__asr_s83.md"
+  },
+  {
+   "file": "status/status_history.md",
+   "n_repl": 2,
+   "bytes_before": 81904,
+   "bytes_after": 81907,
+   "idx_used": [
+    54,
+    55
+   ],
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\status__status_history.md"
+  }
+ ],
+ "skipped": []
+}

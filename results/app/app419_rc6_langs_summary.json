@@ -16,9 +16,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "只需要两分钟，当邮件不断涌入时，它能让我保持专注。 诀窍在于将新习惯与你已经做的事情联系起来，比如煮咖啡。",
-    "不需要意志力，只需要一个已经存在的触发因素即可。 我的团队，我们每天早上都举行简短的站立会议，这比每周的长时间回顾更有效。 每个人都会说出他们昨天做了什么，今天会做什么，以及是否有任何事情阻碍着他们。",
-    "因为他还能让问题在月初时就显现出来，避免他们在月底变成危机。 人们工作结束后应该。"
+    "[会议句 idx 290]。 [会议句 idx 505]。",
+    "[会议句 idx 215]。 [会议句 idx 430]。 [会议句 idx 473]。",
+    "[会议句 idx 293]。 人们工作结束后应该。"
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -57,9 +57,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "Just two minutes—as constant emails keep pouring in, it keeps me focused. The trick is to link the new habit with something you already do, like making coffee.",
-    "No willpower needed; just a pre-existing trigger factor is sufficient. My team holds short standing meetings every morning, which is more effective than the longer reviews we have once a week. Everyone will talk about what they did yesterday, what they will do today, and whether there is anything getting in their way.",
-    "Because it allows the problems to become apparent at the beginning of the month, so as to prevent them from turning into a crisis by the end of the month. People should do so after finishing their work."
+    "[会议句 idx 84]. [会议句 idx 154].",
+    "[会议句 idx 99]. [会议句 idx 97]. [会议句 idx 48].",
+    "[会议句 idx 29]. [会议句 idx 116]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -98,9 +98,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "2分しかかからない。メールが絶えず流れ込むとき、私が集中を保つことができる。 コツは、例えばコーヒーを淹れるときなど、新しい習慣を既存の行動と結びつけることです。",
-    "意志力は必要ありません。既にある触発因子があればよいのです。 私たちのチームでは、毎日の早朝に短い立ち会いを開きます。これは、毎週の長時間の振り返りよりも効果的です。 みんじめんは、昨日何をしたか、今日何をするか、そして何かが彼らを妨げているかどうかを話す。",
-    "なぜなら、彼は問題を初めの月にすでに明らかにでき、月末に危機になるのを避けるからだ。 人々は仕事を終えた後、そうすべきです。"
+    "2分しかかからない。[会议句 idx 213]。 [会议句 idx 212]。",
+    "意志力は必要ありません。[会议句 idx 457]。 [会议句 idx 488]。[会议句 idx 209]。 [会议句 idx 211]。",
+    "[会议句 idx 210]。 [会议句 idx 231]。"
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -139,9 +139,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "2분만 걸려서, 이메일이 계속 쏟아져 들어올 때는 제가 집중할 수 있게 해줍니다. 비밀은 커피를 끓이는 것과 같은, 이미 하던 일들과 새로운 습관을 연결하는 것입니다.",
-    "의지가 필요 없고, 이미 존재하는 트리거 요인만 있으면 됩니다. 우리 팀은 매일 아침 짧은 서면 회의를 진행합니다. 이는 매주 오래한 검토보다는 더 효과적입니다. 모든 사람은 어제 무엇을 했는지, 오늘 무엇을 할 예정인지, 그리고 어떤 장애물이 있는지에 대해 말할 것이다.",
-    "왜냐하면 그는 문제가 월 초에 나타나도록 할 수 있어서, 그들이 월말에 위기를 겪는 것을 방지할 수 있습니다. 사람들이 일을 마치고 나면 그렇게 해야 합니다."
+    "[会议句 idx 1]. [会议句 idx 566].",
+    "[会议句 idx 570]. [会议句 idx 569]. [会议句 idx 571]. [会议句 idx 565].",
+    "[会议句 idx 568]. [会议句 idx 567]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -180,9 +180,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "Nur zwei Minuten, wenn die E-Mails ununterbrochen einfließen, kann es mich konzentriert halten. Der Schlüssel liegt darin, neue Gewohnheiten mit den bereits getanen Dingen zu verbinden – zum Beispiel das Kochen von Kaffee.",
-    "Es ist nicht notwendig, Willenskraft – nur ein bereits vorhandener Auslöser reicht aus. Meine Teamgruppe hält jeden Morgen kurze Standarbeitsgespräche ab – das ist effektiver als die langen, mehrfache Wiederholungen wöchentlich. Jeder erzählt, was er gestern getan hat, was er heute tun wird und ob irgendetwas sie behindert.",
-    "Denn er kann dazu beitragen, dass die Probleme bereits zu Beginn des Monats sichtbar werden, um es verhindern, dass sie am Ende des Monats zu einer Krise werden. Menschen sollten nach dem Arbeiten."
+    "[会议句 idx 107]. [会议句 idx 42].",
+    "[会议句 idx 47]. [会议句 idx 93]. [会议句 idx 82].",
+    "[会议句 idx 41]. [会议句 idx 94]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 2,
@@ -221,9 +221,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "Il ne prend que deux minutes, et lorsque les e-mails affluent sans cesse, cela me permet de rester concentré. La clé réside dans le lien entre les nouvelles habitudes et ce que vous faites déjà, comme préparer du café.",
-    "Il n’est pas nécessaire d’exercer de volonté, il suffit d’un facteur déclencheur déjà existant. Notre équipe organise des réunions debout courtes chaque matin, ce qui est plus efficace que les revues longues et complètes semblables à une réunion hebdomadaire. Chacun dira ce qu’il a fait hier, ce qu’il fera aujourd’hui, et si quelque chose les empêche.",
-    "Car il permet aux problèmes de se manifester dès le début du mois, afin d’éviter qu’ils ne deviennent une crise à la fin du mois. Les gens doivent le faire après avoir terminé leur travail."
+    "[会议句 idx 68]. [会议句 idx 85].",
+    "[会议句 idx 69]. [会议句 idx 102]. [会议句 idx 36].",
+    "[会议句 idx 34]. [会议句 idx 90]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -262,9 +262,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "Solo toman dos minutos; cuando llegan constantemente correos electrónicos, me permite mantener mi concentración. El truco está en relacionar la nueva costumbre con las cosas que ya haces, como por ejemplo, hacer café.",
-    "No se necesita voluntad, solo un factor desencadenante que ya existe. Mi equipo: cada mañana tenemos reuniones en pie breves, lo cual es más efectivo que las revisiones largas y detalladas semanalmente. Cada persona cuenta lo que hizo ayer, lo que hará hoy, y si hay algo que les obstaculice.",
-    "Porque además, puede hacer que los problemas aparezcan desde el inicio del mes, para evitar que se conviertan en una crisis al final del mes. La gente debe hacerlo después de terminar su trabajo."
+    "[会议句 idx 141]. [会议句 idx 45].",
+    "[会议句 idx 98]. [会议句 idx 95]. [会议句 idx 33].",
+    "[会议句 idx 118]. [会议句 idx 86]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -303,9 +303,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "Só precisam de dois minutos. Quando os e-mails continuam a chegar, isso me ajuda a manter a concentração. O segredo é relacionar a nova hábito com o que você já faz, como fazer café.",
-    "Não é preciso vontade de agir; basta de um fator desencorcado que já existe. A minha equipe realiza reuniões de pé curtas todas as manhãs, o que é mais eficaz do que uma revisão longa e demorada a cada semana. Todos dizem o que fizeram ontem, o que farão hoje, e se houve algo que os dificultou.",
-    "Porque ele também pode fazer com que os problemas apareçam desde o início do mês, evitando que se tornem uma crise no final do mês. As pessoas devem fazê-lo após terminar o trabalho."
+    "[会议句 idx 142]. [会议句 idx 121]. [会议句 idx 109].",
+    "[会议句 idx 108]. [会议句 idx 3]. [会议句 idx 168].",
+    "[会议句 idx 119]. [会议句 idx 27]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -344,9 +344,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "Basta due minuti; quando arrivano continuamente email, mi permette di mantenere la concentrazione. Il trucco sta nel collegare la nuova abitudine alle cose che già fai, come preparare caffè.",
-    "Non è necessaria la volontà, basta un fattore innescante già esistente. La mia squadra tiene riunioni in piedi brevi ogni mattina; questo è più efficace di una revisione lunga e lunga. Ognuno dice cosa ha fatto ieri, cosa farà oggi, e se c’è qualcosa che gli ostacola.",
-    "Perché può far sì che i problemi emergano fin dall’inizio del mese, in modo da evitare che diventino una crisi alla fine del mese. Le persone dovrebbero farlo dopo aver terminato il lavoro."
+    "[会议句 idx 28]. [会议句 idx 70].",
+    "[会议句 idx 100]. [会议句 idx 87]. [会议句 idx 110].",
+    "[会议句 idx 117]. [会议句 idx 89]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,
@@ -385,9 +385,9 @@
    ],
    "n_translations": 3,
    "translations": [
-    "Просто два минута. Когда поступает множество писем, это помогает мне сохранять концентрацию. Секрет заключается в том, чтобы связать новые привычки с уже сделанными вами действиями, например, в приготовление кофе.",
-    "Не нужна сила воли, достаточно лишь уже существующей ключевой причина. Мой коллектив каждое утро проводит короткие стоячие встречи, что более эффективно, чем длинные обзоры, которые проходят каждую неделю. Каждый человек расскажет о том, что он делал вчера, что будет делать сегодня, и есть ли какие-либо препятствия на их пути.",
-    "Потому что он может выявить проблемы уже в начале месяца, чтобы они не превращались в кризис в конце месяца. Люди должны это делать после окончания работы."
+    "[会议句 idx 207]. [会议句 idx 202]. [会议句 idx 208].",
+    "[会议句 idx 205]. [会议句 idx 204]. [会议句 idx 201].",
+    "[会议句 idx 206]. [会议句 idx 203]."
    ],
    "n_translation_same_as_source": 0,
    "translation_script_hits": 3,

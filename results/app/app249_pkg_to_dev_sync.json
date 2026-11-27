@@ -1,0 +1,115 @@
+{
+ "script": "_app249_sync_pkg_to_dev.py",
+ "why": "包内已有 APP-153 §3/§5 修复，dev 树没有 ⇒ 下次打包（dev→包）会丢",
+ "pkg": "C:\\Users\\Trekker-PTL\\LiveCaption_MiniMVP_v1.2.1\\app",
+ "files": [
+  {
+   "file": "live_caption_app.py",
+   "status": "SYNCED",
+   "n_reps": 6,
+   "n_hit_in_dev": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "now_identical_to_pkg": true,
+   "bytes_before": 534180,
+   "bytes_after": 533969,
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\dev__live_caption_app.py",
+   "reps": [
+    {
+     "old": "    _WINDOW_TITLE = '实时字幕 MiniMVP v1.0'\n",
+     "new": "    _WINDOW_TITLE = '实时字幕 MiniMVP v1.2.1'\n"
+    },
+    {
+     "old": "        ② 「rc5 在 B 机 268 s 崩溃」是**旧解码器**的事；MiniMVP\n",
+     "new": "        ② 「旧解码器长时间运行崩溃」是**旧解码器**的事；MiniMVP\n"
+    },
+    {
+     "old": "            ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3；\n            rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）\n",
+     "new": "            ASR 与 MT 同在 GPU.0（stateful 解码器负载约为旧解码器的 1/3）\n"
+    },
+    {
+     "old": "            msg = ('ASR 与 MT 同在 %s（stateful 解码器负载约为旧解码器的 1/3；'\n                   'rc5 在 B 机 268 s 崩溃是旧解码器，待 B 机复核）' % asr_dev)\n",
+     "new": "            msg = ('ASR 与 MT 同在 %s（stateful 解码器负载约为旧解码器的 1/3）'\n                   % asr_dev)\n"
+    },
+    {
+     "old": "    #   「rc5 在 B 机 268 s 崩溃」是**旧解码器**的事；MiniMVP 现在是\n",
+     "new": "    #   「旧解码器长时间运行崩溃」是**旧解码器**的事；MiniMVP 现在是\n"
+    },
+    {
+     "old": "                      '旧解码器的 1/3；rc5 在 B 机 268 s 崩溃是旧解码器，'\n                      '待 B 机复核）' % _asr_d, file=sys.stderr, flush=True)\n",
+     "new": "                      '旧解码器的 1/3）' % _asr_d, file=sys.stderr, flush=True)\n"
+    }
+   ]
+  },
+  {
+   "file": "device_config.py",
+   "status": "SYNCED",
+   "n_reps": 3,
+   "n_hit_in_dev": [
+    1,
+    1,
+    1
+   ],
+   "now_identical_to_pkg": true,
+   "bytes_before": 48828,
+   "bytes_after": 48841,
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\dev__device_config.py",
+   "reps": [
+    {
+     "old": "#   （避开 B 机 268 s 后崩溃的「ASR GPU + MT GPU」组合）；\n",
+     "new": "#   （避开旧解码器在长时间运行下的「ASR GPU + MT GPU」组合）；\n"
+    },
+    {
+     "old": "#   ⚠️ 「rc5 在 B 机 268 s 崩溃」这件事**只对旧解码器成立**，\n",
+     "new": "#   ⚠️ 「旧解码器长时间运行崩溃」这件事**只对旧解码器成立**，\n"
+    },
+    {
+     "old": "    这条**旧文案对它们不成立**（rc5 在 B 机 268 s 崩溃是**旧解码器**的事）。\n",
+     "new": "    这条**旧文案对它们不成立**（长时间运行崩溃是**旧解码器**的事）。\n"
+    }
+   ]
+  },
+  {
+   "file": "asr06b_stateful_backend.py",
+   "status": "SYNCED",
+   "n_reps": 1,
+   "n_hit_in_dev": [
+    1
+   ],
+   "now_identical_to_pkg": true,
+   "bytes_before": 35466,
+   "bytes_after": 35462,
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\dev__asr06b_stateful_backend.py",
+   "reps": [
+    {
+     "old": "``C:\\Users\\Trekker-PTL\\qwen3asr_06b\\b_kit_stateful\\scripts\\bk_run.py``\n",
+     "new": "``<Qwen3-ASR 0.6B 开发目录>\\b_kit_stateful\\scripts\\bk_run.py``\n"
+    }
+   ]
+  },
+  {
+   "file": "v23_preset_only.py",
+   "status": "SYNCED",
+   "n_reps": 1,
+   "n_hit_in_dev": [
+    1
+   ],
+   "now_identical_to_pkg": true,
+   "bytes_before": 17260,
+   "bytes_after": 17257,
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app249_desen_backup\\dev__v23_preset_only.py",
+   "reps": [
+    {
+     "old": "    r'(?i)C:\\\\Users\\\\Trekker-PTL',\n",
+     "new": "    r'(?i)C:\\\\Users\\\\[^\\\\\\\\]+',\n"
+    }
+   ]
+  }
+ ],
+ "all_ok": true
+}

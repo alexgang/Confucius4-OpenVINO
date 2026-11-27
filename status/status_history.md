@@ -1279,7 +1279,7 @@ C-039 修了 encoder (从窗口 attention 改回全局) 后 WER 从 23% 降到 1
 **当前进度 (11:02)**:
 - 已跑 5/226 段, 56.9s 耗时
 - 段内 RTF 0.6-0.62 (符合预期)
-- 段 0 文本: "Good morning everyone. Good morning. Let..." (正常)
+- 段 0 文本: "[会议句 idx 55]. [会议句 idx 54]. Let..." (正常)
 
 **输出**:
 - `reports/spe_61min_transcript.txt` (新, 等于 c043 精度方案结果)

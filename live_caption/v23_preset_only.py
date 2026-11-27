@@ -205,7 +205,7 @@ PKG_EXCLUDE_PATTERNS = [
 
 # APP-080 ⑥ 验收用的黑名单扫描关键词（会议录音 / 开发路径 / torch / cuda）。
 BLACKLIST_PATTERNS = [
-    r'(?i)C:\\Users\\Trekker-PTL',
+    r'(?i)C:\\Users\\[^\\\\]+',
     r'(?i)hy_bench',
     r'(?i)(^|/)results/.*_spoken',
     r'(?i)(^|/)torch(/|$)',

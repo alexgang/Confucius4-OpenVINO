@@ -17,7 +17,7 @@
   },
   "fixed": {
     "n_segments": 46,
-    "first": "Good morning everyone. Good morning. Let's get started. So, welcome",
+    "first": "[会议句 idx 55]. [会议句 idx 54]. Let's get started. So, welcome",
     "last": "Solutions. Novellix solves that problem. When we come out with Novelli",
     "meta": {
       "source_file": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app253_minimvp_out\\minimvp.txt",

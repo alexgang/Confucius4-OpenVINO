@@ -1,0 +1,19 @@
+{
+ "script": "_app249_verify_desen_final.py",
+ "method": "§1 逐行子串扫描（彻底） + §2 占位还原与 HEAD 逐字节相等（无损） + §3 JSON 结构 + §4 反证组",
+ "n_gt_sentences": 571,
+ "n_scanned_files": 1251,
+ "n_pass_lossless": 121,
+ "n_fail_lossless": 0,
+ "fail_lossless": [],
+ "n_residual_files": 0,
+ "residual": {},
+ "json_broken_after": [],
+ "json_newly_broken": [],
+ "counterexample": {
+  "ok": true,
+  "detail": "注入真会议句后 §1 扫描命中=True（须 True）",
+  "file": "README.md"
+ },
+ "verdict": "PASS"
+}

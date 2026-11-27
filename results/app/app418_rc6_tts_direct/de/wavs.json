@@ -7,7 +7,7 @@
    "sr": 24000,
    "samples": 299520,
    "dur_s": 12.48,
-   "text": "Nur zwei Minuten, wenn die E-Mails ununterbrochen einfließen, kann es mich konzentriert halten. Der Schlüssel liegt darin, neue Gewohnheiten mit den bereits getanen Dingen zu verbinden – zum Beispiel das Kochen von Kaffee.",
+   "text": "[会议句 idx 107]. [会议句 idx 42].",
    "end_reason": null
   },
   {
@@ -15,7 +15,7 @@
    "sr": 24000,
    "samples": 468480,
    "dur_s": 19.52,
-   "text": "Es ist nicht notwendig, Willenskraft – nur ein bereits vorhandener Auslöser reicht aus. Meine Teamgruppe hält jeden Morgen kurze Standarbeitsgespräche ab – das ist effektiver als die langen, mehrfache Wiederholungen wöchentlich. Jeder erzählt, was er gestern getan hat, was er heute tun wird und ob irgendetwas sie behindert.",
+   "text": "[会议句 idx 47]. [会议句 idx 93]. [会议句 idx 82].",
    "end_reason": null
   }
  ],

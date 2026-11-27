@@ -7512,7 +7512,7 @@ sleeper pid 37712 cpu a=0.1875 b=0.1875 delta=0.0000   ← 稳态增量确实是
 | 草稿 | 现版配到 | 跨段 | 真相 |
 |---|---|---|---|
 | `DRAFT::That`（seg 22，原文 `That`，**4 字符**） | seg 107 `That's where we are today.` | **85 段** | 🔴 **假前缀**：撇号被删 ⇒ `'that'` 是 `'thats where we are today'` 的前缀 ⇒ rank1 成立 ⇒「最短剩余正式稿优先」把**远处那个短句**选中 ⇒ 挤掉同段的正确候选（seg 22 `That does not mean we won't use external options…`） |
-| `DRAFT::Okay`（seg 6，原文 `Okay`，**4 字符**） | seg 39 `Okay, next slide.` | **33 段** | 🔴 **短草稿 + 词边界合法**（`Okay` 后是逗号）⇒ **词边界判据抓不住**。🔴 进一步查证：seg 7 的草稿 `Okay So you recall, Alex spoke about…` 凑齐后提交于 **seg 8**，正式稿 `Okay So you recall, Alex spoke about business growth…` 正是 **seg 8** 的单元 ⇒ **`Okay` 的正确对象在 seg 8（跨 2 段）**，现版却抓到 33 段外 |
+| `DRAFT::Okay`（seg 6，原文 `Okay`，**4 字符**） | seg 39 `[会议句 idx 111].` | **33 段** | 🔴 **短草稿 + 词边界合法**（`Okay` 后是逗号）⇒ **词边界判据抓不住**。🔴 进一步查证：seg 7 的草稿 `Okay So you recall, Alex spoke about…` 凑齐后提交于 **seg 8**，正式稿 `Okay So you recall, Alex spoke about business growth…` 正是 **seg 8** 的单元 ⇒ **`Okay` 的正确对象在 seg 8（跨 2 段）**，现版却抓到 33 段外 |
 
 🔴 **共同的规律**：两条草稿都**只有 4 个字符** ⇒ 前缀条件极易成立
 ⇒ 而**短**正式稿在远处 ⇒ 「最短剩余正式稿优先」把它选中
@@ -7584,7 +7584,7 @@ if (isinstance(_draft_seg, int) and isinstance(_final_seg, int)
 
 | 草稿 | 现版（错） | 候选（对） |
 |---|---|---|
-| `DRAFT::Okay`（seg 6） | seg 39 `Okay, next slide.`（跨 33 段） | **seg 8** `Okay So you recall, Alex spoke about business growth…`（跨 2 段） |
+| `DRAFT::Okay`（seg 6） | seg 39 `[会议句 idx 111].`（跨 33 段） | **seg 8** `Okay So you recall, Alex spoke about business growth…`（跨 2 段） |
 | `DRAFT::That`（seg 22） | seg 107 `That's where we are today.`（跨 85 段） | **seg 23** `That Could be in situations like chipsets…`（跨 1 段） |
 
 #### §44.3.3 ✅ 候选版本的回归验收（**零回归**）

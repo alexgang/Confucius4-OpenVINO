@@ -119,7 +119,7 @@ reviewer 的 `compare_wer.norm`，**未改一个字**）。
 ### 缺陷②：SPE 10 分钟片段被误判为**中文**
 
 * **根因**：`clip_10min_0_600.wav` 实测是**英文**（`reports/c026_minimax_transcript.txt`
-  原文 = "All right, good morning everyone…"）⇒ 第一轮误用 zh prompt。
+  原文 = "All right, [会议句 idx 55]…"）⇒ 第一轮误用 zh prompt。
 * **实测证据**：修正前 SPE 流式臂 = **84 汉字 + 7463 拉丁字母**；
   修正后 = **0 汉字 + 7704 拉丁字母**。
 * **影响**：修正前 SPE 流式臂中文混排 ⇒ 不可比 ⇒ 重跑。

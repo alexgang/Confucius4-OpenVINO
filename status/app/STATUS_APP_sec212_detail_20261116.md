@@ -184,10 +184,10 @@
 
 - **zh-parallel**：候选 164 句（≥1.8×），抽出 3 段
   - `sp4_zh_fast_id11_speed1_53.wav` ｜ speed **1.5332×** ｜ 59084 B ｜ 与软件团队一起。 ｜ SHA `d27642f20e9e0f0f`
-  - `sp4_zh_fast_id12_speed1_53.wav` ｜ speed **1.5332×** ｜ 145484 B ｜ 我认为这可能是需要进行的规模最大的调整之一。 ｜ SHA `bcead2f8dbb87c55`
+  - `sp4_zh_fast_id12_speed1_53.wav` ｜ speed **1.5332×** ｜ 145484 B ｜ [会议句 idx 439]。 ｜ SHA `bcead2f8dbb87c55`
   - `sp4_zh_fast_id13_speed1_53.wav` ｜ speed **1.5332×** ｜ 103724 B ｜ 去推动我们前方的发展，这是我所期望的。 ｜ SHA `601d6a3a0354564f`
 - **en-parallel**：候选 164 句（≥1.8×），抽出 3 段
-  - `sp4_en_fast_id11_speed1_37.wav` ｜ speed **1.3705×** ｜ 67724 B ｜ with the software team. ｜ SHA `d98efa7c0b981c83`
+  - `sp4_en_fast_id11_speed1_37.wav` ｜ speed **1.3705×** ｜ 67724 B ｜ [会议句 idx 194]. ｜ SHA `d98efa7c0b981c83`
   - `sp4_en_fast_id12_speed1_37.wav` ｜ speed **1.3705×** ｜ 106604 B ｜ I think it’s probably one of the biggest ｜ SHA `70782a266d681fef`
   - `sp4_en_fast_id13_speed1_37.wav` ｜ speed **1.3705×** ｜ 138284 B ｜ To enable the growth ahead of us, which  ｜ SHA `6b223a61892dd2fd`
 - **zh-serial**：候选 164 句（≥1.8×），抽出 3 段

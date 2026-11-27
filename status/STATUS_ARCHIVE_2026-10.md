@@ -953,7 +953,7 @@ OV 听到了"a good question, but I think" 后，INT8 stateful decoder 在该 KV
   - "industri" (应该是 industrial)
   - "quantum" (应该 agentic，C-019 已记)
   - "pantricove" (Panther Cove)
-- 段首丢词：OV 第一段开头是 "good morning" 但 MM 是 "all right, good morning"（流式 unfixed 把段首 2 词丢了）
+- 段首丢词：OV 第一段开头是 "[会议句 idx 54]" 但 MM 是 "all right, [会议句 idx 54]"（流式 unfixed 把段首 2 词丢了）
 - 流式 unfixed_token_num=5 → 每个 chunk 末 5 token 可回滚 → 段边界附近丢词
 
 **Hybrid 9.07% vs 我 23.13% 的差距**：
@@ -2004,7 +2004,7 @@ C-039 修了 encoder (从窗口 attention 改回全局) 后 WER 从 23% 降到 1
 **当前进度 (11:02)**:
 - 已跑 5/226 段, 56.9s 耗时
 - 段内 RTF 0.6-0.62 (符合预期)
-- 段 0 文本: "Good morning everyone. Good morning. Let..." (正常)
+- 段 0 文本: "[会议句 idx 55]. [会议句 idx 54]. Let..." (正常)
 
 **输出**:
 - `reports/spe_61min_transcript.txt` (新, 等于 c043 精度方案结果)

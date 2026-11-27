@@ -7,7 +7,7 @@
    "sr": 24000,
    "samples": 224640,
    "dur_s": 9.36,
-   "text": "Just two minutes—as constant emails keep pouring in, it keeps me focused. The trick is to link the new habit with something you already do, like making coffee.",
+   "text": "[会议句 idx 84]. [会议句 idx 154].",
    "end_reason": null
   },
   {
@@ -15,7 +15,7 @@
    "sr": 24000,
    "samples": 435840,
    "dur_s": 18.16,
-   "text": "No willpower needed; just a pre-existing trigger factor is sufficient. My team holds short standing meetings every morning, which is more effective than the longer reviews we have once a week. Everyone will talk about what they did yesterday, what they will do today, and whether there is anything getting in their way.",
+   "text": "[会议句 idx 99]. [会议句 idx 97]. [会议句 idx 48].",
    "end_reason": null
   }
  ],

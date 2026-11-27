@@ -1376,19 +1376,19 @@
   {
    "t": 0.0,
    "shift_to": null,
-   "src": "Good morning, everyone.",
-   "tgt": "Good morning, everyone."
+   "src": "[会议句 idx 55].",
+   "tgt": "[会议句 idx 55]."
   },
   {
    "t": 3.5,
    "shift_to": null,
-   "src": "Good morning. Let's get started. So welc",
-   "tgt": "Good morning. Let’s get started. Welcome"
+   "src": "[会议句 idx 54]. Let's get started. So welc",
+   "tgt": "[会议句 idx 54]. [会议句 idx 91]. Welcome"
   },
   {
    "t": 9.59,
    "shift_to": null,
-   "src": "Agenda topics today, we'll talk about th",
+   "src": "[会议句 idx 6], we'll talk about th",
    "tgt": "Today’s agenda topics: we’ll discuss thr"
   },
   {

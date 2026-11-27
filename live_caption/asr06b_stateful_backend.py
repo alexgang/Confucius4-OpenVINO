@@ -7,7 +7,7 @@ cache）；无 KV 的旧解码器只留在开发树当 WER/RTF 配对基线，�
 解码语义不同，故各用一个后端类，由 dev 侧开关选择。
 
 ## 口径来源（APP-103 裁定：只读引用，不改 ASR 模块任何文件）
-``C:\Users\Trekker-PTL\qwen3asr_06b\b_kit_stateful\scripts\bk_run.py``
+``<Qwen3-ASR 0.6B 开发目录>\b_kit_stateful\scripts\bk_run.py``
 （ASR 模块已验收、不依赖 torch 的 stateful 实现）：
 
 * 端口：``inputs_embeds [1, 1..512, 1024]`` / ``attention_mask`` /

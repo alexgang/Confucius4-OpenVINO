@@ -72,9 +72,9 @@
     "mt"
   ],
   "unit_sample": {
-    "key": "Good morning everyone.",
+    "key": "[会议句 idx 55].",
     "seg": 0,
-    "src": "Good morning everyone.",
+    "src": "[会议句 idx 55].",
     "mt": "大家早上好。"
   },
   "Q1_mt_of_seg": {

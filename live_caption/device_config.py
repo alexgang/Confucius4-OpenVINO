@@ -57,7 +57,7 @@ CONFIG_PATH = os.path.join(CONFIG_DIR, 'device_config.json')
 #   （GPU.0）**，克隆用的说话人编码器 / x-vector 同走 GPU.0；
 #   高级选项里仍可选 NPU。**完整版的 ASR / MT 默认不变**（仍 GPU.0）。
 # 🔴🔴 APP-099 0.2（用户 2026-11-11）：**MiniMVP 默认 ASR=NPU、MT=GPU.0**
-#   （避开 B 机 268 s 后崩溃的「ASR GPU + MT GPU」组合）；
+#   （避开旧解码器在长时间运行下的「ASR GPU + MT GPU」组合）；
 #   高级选项里可以调整。这一条**只改 MiniMVP 的默认**。
 # 🔴🔴🔳 **APP-119 §1（reviewer 2026-11-20）**：完整版的**出厂默认改成**
 #   **ASR = GPU.0 ／ MT = GPU.0 ／ TTS = NPU**
@@ -146,7 +146,7 @@ DEFAULT_DEVICES: Dict[str, str] = _profile_default_devices()
 #   负载约为旧解码器的 **1/3**；reviewer 2026-11-12 14:30 已把 MiniMVP
 #   出厂默认改成 **ASR GPU.0 / MT GPU.0 / TTS NPU**（见下方 §7）⇒
 #   **不得**再把「ASR 与 MT 同在 GPU.0」写成「会崩」。
-#   ⚠️ 「rc5 在 B 机 268 s 崩溃」这件事**只对旧解码器成立**，
+#   ⚠️ 「旧解码器长时间运行崩溃」这件事**只对旧解码器成立**，
 #   stateful 解码器在 B 机的表现**待复核**（reviewer 原话）。
 #
 # 处置（reviewer 明文要求，逐条对齐）：
@@ -232,7 +232,7 @@ def uses_stateful_asr_decoder() -> bool:
 
     🔴 MiniMVP（APP-105 §7）与 Special MVP 都是 **stateful** ⇒ 负载约为
     旧解码器的 1/3 ⇒「ASR 与 MT 同在 GPU ⇒ 会 CL_OUT_OF_RESOURCES」
-    这条**旧文案对它们不成立**（rc5 在 B 机 268 s 崩溃是**旧解码器**的事）。
+    这条**旧文案对它们不成立**（长时间运行崩溃是**旧解码器**的事）。
     完整版 v2.x 仍用旧解码器 ⇒ 保留原告警文案。
     """
     return current_profile() in ('minimvp', 'specialmvp')

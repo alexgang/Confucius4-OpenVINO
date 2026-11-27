@@ -41,7 +41,7 @@
 | **三行字幕条** | hwnd 9047410 / **1638×157** / x=205 y=1034（屏幕下半部） | 同上 → `overlay_window` |
 | 字幕条 png | `…/after_fix_tmp_overlay.png`（23 535 B） | 同上 → `overlay_png.path` / `.bytes` |
 | 字幕条守卫 | `not_black=true` / `content_density_gt_0=true`（0.129481）/ `wide_bar=true` | 同上 → `overlay_guards` |
-| **三行内容（已读图确认）** | ① 青 = 定稿译文「…如寄咖啡。于是，咖啡便成了提醒。没错，你不需要意志力，只需要一个已经存在的触发因素即可。」② 白 = 定稿原文「…es the reminder. Exactly, you don't need willpower, you just need a trigger that already exists.」③ 黄 = 实时识别「That makes sense.」 | 截图人工读图（`overlay_png`） |
+| **三行内容（已读图确认）** | ① 青 = 定稿译文「…如寄咖啡。于是，咖啡便成了提醒。没错，你[会议句 idx 215]。」② 白 = 定稿原文「…es the reminder. Exactly, you don't need willpower, you just need a trigger that already exists.」③ 黄 = 实时识别「That makes sense.」 | 截图人工读图（`overlay_png`） |
 
 * 🔴 **字幕条不能用标题找**：`CaptionOverlay` 是 `tk.Toplevel` + `overrideredirect(True)` ⇒ **Win32 标题继承父窗口标题**（实测与主窗**完全相同**）⇒ 上一版 `find_window('字幕')` 抓到的是**主窗**（hwnd 相同）。⇒ 改用**几何 + 位置**三重判据：宽 ≫ 高（w > 3h）＋ 位于**下半屏**（top ≥ 屏高×0.55）＋ 尺寸下限。
   ⚠️ 中途踩坑：判据原写「贴屏幕底部（bottom ≥ 屏高−40）」⇒ **误杀**（本机屏高 1280，字幕条 bottom=1191，差 89）⇒ 字幕条贴在**工作区**底部而非物理屏底。
