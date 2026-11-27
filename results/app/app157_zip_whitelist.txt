@@ -1,0 +1,87 @@
+MiniMVP v1.2.1 打 zip 白名单门禁表
+生成：2026-11-27 18:38:06
+包目录：C:\Users\Trekker-PTL\LiveCaption_MiniMVP_v1.2.1
+
+ 1. [PASS] ① 包内无 ACCEPTED.json（签章写包外）
+        证据：0 个
+ 2. [PASS] ② 全文本（175 个条目）搜 Trekker-PTL = 0 处
+ 3. [PASS] ③ manifest.liveDub.release == true
+        证据：True
+ 4. [PASS] ③ manifest.liveDub.captureModes == [tabCapture]
+        证据：['tabCapture']
+ 5. [PASS] ③ 开发目录 manifest 仍 release=false（EXT-031③）
+        证据：False
+ 6. [PASS] ④ GUI 窗口标题 = 实时字幕 MiniMVP v1.2.1
+ 7. [PASS] ⑤ 面向客户文件（17 个）搜 confucius = 0
+ 8. [PASS] ⑥ 保留的内部「Confucius4」清单已落盘（包外，APP-154 §2 要求逐个列明）
+        证据：63 处 / C:\Users\Trekker-PTL\confucius4-openvino\results\app\app154_internal_names.json
+ 9. [PASS] ⑦ release.json 无 APP-xxx 内部编号
+10. [PASS] ⑦ package_profile.json 无 APP-xxx 内部编号
+11. [PASS] ⑧ release.json version = 1.2.1
+        证据：1.2.1
+12. [PASS] ⑧ release.json ext.version = 0.4.25
+        证据：0.4.25
+13. [PASS] ⑧ package_profile.json ext_version = 0.4.25
+        证据：0.4.25
+14. [PASS] ⑨ 包内无 results/mt2_accuracy.*（MT2 内部基准）
+15. [PASS] ⑩ --check 实际输出无「B 机/待 B 机复核/rc5」内部说法
+        证据：0 处（真跑 --check 的 stdout/stderr）
+16. [PASS] ⑪ 除 preset_A.wav 外无音视频文件
+17. [PASS] ⑫ 包内无 CUDA DLL
+18. [PASS] ⑬ 无 bridge_token/*.log/*.err/ov_cache/npu_cache/我方代码 __pycache__/*.bak*（含 .bak_<tag>）
+19. [PASS] ⑬反证 旧判据漏检 .bak_<tag> ⇒ 新判据命中
+        证据：README_zh.md.bak_app154_docclean
+20. [PASS] ⑭ 克隆音色目录为空
+21. [PASS] ⑮ models/mt 只含 mt3-int8sym-cw-q
+        证据：['mt3-int8sym-cw-q']
+22. [PASS] ⑯ 出厂默认 ASR=GPU.0 / MT=GPU.0 / TTS=NPU / turbo 开
+        证据：mt=mt3-int8sym-cw-q turbo=True
+23. [PASS] ⑰ 包内 ext/bridge/version.py = 0.4.25
+24. [PASS] ⑰ 包内 ext/bridge 与仓库 ext/ 逐字节一致（25 个相同）
+        证据：diff=[] miss=[]
+25. [PASS] ⑱[bgkeep_off] 失控中止 = 0
+        证据：0
+26. [PASS] ⑱[bgkeep_off] 空配音（has_tts=false 且 tgt_len>0）= 0
+        证据：0
+27. [PASS] ⑱[bgkeep_off] 丢句 = 0
+        证据：0
+28. [PASS] ⑱[bgkeep_off] n_error = 0
+        证据：0
+29. [PASS] ⑱[bgkeep_off] n_resynth_failed = 0（APP-156 §1）
+        证据：0
+30. [PASS] ⑱[bgkeep_off] 60 s 墙钟兜底日志行数 = 0（APP-156 §1）
+        证据：0
+31. [PASS] ⑱[bgkeep_off] rc = 0
+        证据：0
+32. [PASS] ⑱[bgkeep_on] 失控中止 = 0
+        证据：0
+33. [PASS] ⑱[bgkeep_on] 空配音（has_tts=false 且 tgt_len>0）= 0
+        证据：0
+34. [PASS] ⑱[bgkeep_on] 丢句 = 0
+        证据：0
+35. [PASS] ⑱[bgkeep_on] n_error = 0
+        证据：0
+36. [PASS] ⑱[bgkeep_on] n_resynth_failed = 0（APP-156 §1）
+        证据：0
+37. [PASS] ⑱[bgkeep_on] 60 s 墙钟兜底日志行数 = 0（APP-156 §1）
+        证据：0
+38. [PASS] ⑱[bgkeep_on] rc = 0
+        证据：0
+39. [PASS] ⑱[bgkeep_on_clone] 失控中止 = 0
+        证据：0
+40. [PASS] ⑱[bgkeep_on_clone] 空配音（has_tts=false 且 tgt_len>0）= 0
+        证据：0
+41. [PASS] ⑱[bgkeep_on_clone] 丢句 = 0
+        证据：0
+42. [PASS] ⑱[bgkeep_on_clone] n_error = 0
+        证据：0
+43. [PASS] ⑱[bgkeep_on_clone] n_resynth_failed = 0（APP-156 §1）
+        证据：0
+44. [PASS] ⑱[bgkeep_on_clone] 60 s 墙钟兜底日志行数 = 0（APP-156 §1）
+        证据：0
+45. [PASS] ⑱[bgkeep_on_clone] rc = 0
+        证据：0
+46. [PASS] 【汇总】全部通过
+        证据：45 PASS / 0 FAIL
+
+结论：45 PASS / 0 FAIL

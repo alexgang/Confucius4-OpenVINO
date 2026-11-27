@@ -1,0 +1,64 @@
+{
+  "pkg": "C:\\Users\\Trekker-PTL\\LiveCaption_MiniMVP_v1.2.1",
+  "audit_dir": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak",
+  "n_moved": 8,
+  "generated": "2026-11-27 18:36:11",
+  "items": [
+    {
+      "rel": "app/MANIFEST.json.bak_app154_docclean",
+      "bytes": 1874,
+      "mtime": "2026-11-27 12:13:03",
+      "sha256": "5d9babc26c6c09db562f0a1f0d676a51da06322dbd41b183b57351dfe7ae85bb",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\app__MANIFEST.json.bak_app154_docclean"
+    },
+    {
+      "rel": "NOTICE.bak_app154_docclean",
+      "bytes": 10327,
+      "mtime": "2026-11-24 13:14:23",
+      "sha256": "22d70a34316d4e492f479b2c54c6fcfe6b06120d39b07874e17b3931fa14f88b",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\NOTICE.bak_app154_docclean"
+    },
+    {
+      "rel": "package_profile.json.bak_app156_v0425",
+      "bytes": 566,
+      "mtime": "2026-11-27 12:13:03",
+      "sha256": "2f8def2156754d3fd396e80c6657d3f95fc60b2e3e148edc81a9f5de52073ef4",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\package_profile.json.bak_app156_v0425"
+    },
+    {
+      "rel": "README_en.md.bak_app154_docclean",
+      "bytes": 34588,
+      "mtime": "2026-11-27 12:14:22",
+      "sha256": "08ad91465443bec5bcb310b8bd121da975ff90316d616689984a9265242d0665",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\README_en.md.bak_app154_docclean"
+    },
+    {
+      "rel": "README_zh.md.bak_app154_docclean",
+      "bytes": 31657,
+      "mtime": "2026-11-27 12:14:22",
+      "sha256": "9eec15e31985ef71842050cecbe116d2e5b16e7a40e912a5eee7c07f4fb52d24",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\README_zh.md.bak_app154_docclean"
+    },
+    {
+      "rel": "README_插件.md.bak_app154_docclean",
+      "bytes": 4741,
+      "mtime": "2026-11-27 12:14:22",
+      "sha256": "d7f4e6c2a5d1405b59df5f2a558098adc3cfd622c167aba14a28cfaaa72a8963",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\README_插件.md.bak_app154_docclean"
+    },
+    {
+      "rel": "release.json.bak_app156_v0425",
+      "bytes": 1268,
+      "mtime": "2026-11-27 12:14:22",
+      "sha256": "9c373f7098902bc58b255fa2c2049a985cb8285d7cb2cf403b37ed33f344fb41",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\release.json.bak_app156_v0425"
+    },
+    {
+      "rel": "Start_Bridge.bat.bak_app154_docclean",
+      "bytes": 587,
+      "mtime": "2026-11-27 12:14:22",
+      "sha256": "ce9402d2ead89888fe6fb50699e17add8bb0ed355de69558e770329ab85117d3",
+      "audit_path": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_removed_bak\\Start_Bridge.bat.bak_app154_docclean"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-11-27 18:50:40",
+  "pkg": "C:\\Temp\\verify_v121_app157\\LiveCaption_MiniMVP_v1.2.1",
+  "cmd": [
+    "C:\\Temp\\verify_v121_app157\\LiveCaption_MiniMVP_v1.2.1\\python\\python.exe",
+    "C:\\Users\\Trekker-PTL\\shared\\tools\\machine_lock.py",
+    "run",
+    "--module",
+    "app",
+    "--note",
+    "app157 isolated extracted bridge startup",
+    "--wait-min",
+    "20",
+    "--timeout-min",
+    "2",
+    "--",
+    "C:\\Temp\\verify_v121_app157\\LiveCaption_MiniMVP_v1.2.1\\python\\python.exe",
+    "-m",
+    "ext.bridge",
+    "--real",
+    "--pipeline",
+    "--target-lang",
+    "zh",
+    "--port",
+    "8791"
+  ],
+  "rc": 124,
+  "elapsed_s": 121.3,
+  "landmarks": {
+    "ASR 就绪": true,
+    "MT 就绪": true,
+    "Qwen3-ASR 0.6B": true,
+    "Hy-MT3": true,
+    "Traceback": false
+  },
+  "ok": true,
+  "log": "C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app157_bridge_check.log"
+}

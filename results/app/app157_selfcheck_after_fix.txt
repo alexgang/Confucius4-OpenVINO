@@ -1,0 +1,164 @@
+====================================================================
+EXT 模块自测（不跑推理 / 不占 GPU·NPU / 不抢共享锁）
+====================================================================
+
+[1] 分段 — 一直用 R2T2 原有断句（EXT-002）
+    来源：R2T2 import  pyannote 用于分段: False
+  [PASS] 能规划出多段 — 7 段
+  [PASS] 段不重叠且连续
+  [PASS] 完整段长度落在 [3, 8] s（min/max 内） — 8.00s, 5.29s, 8.00s, 5.10s, 8.00s, 4.60s
+  [PASS] 末段（尾巴）不超过 max — tail=0.31s
+  [PASS] ★ 切段上限短于默认延迟 D=10 s（EXT-027④ 的前提） — max=8s, D=10s
+  [PASS] ★ 切段下限落在 reviewer 要求的 2–3 s（EXT-027④） — min=3s
+  [PASS] ★ 切段上限落在 reviewer 要求的 6–8 s（EXT-027④） — max=8s
+  [PASS] 与 R2T2 原件 _plan_segments 完全一致 — 本地 [(0, 128000), (128000, 212640)]… vs 原件 [(0, 128000), (128000, 212640)]…
+  [PASS] 空音频返回空列表
+
+[2] 时长适配（EXT-001 B 节）
+  [PASS] 放得下 → rate=1
+  [PASS] 需变速 → rate=1.2 — rate=1.2
+  [PASS] 超上限 → rate 封顶 1.25 且记顺延 — rate=1.25 defer=1.500s
+  [PASS] 可借用下一段前静音 — extend=0.60s rate=1.0
+
+[3] WSOLA 保持音高变速
+  [PASS] 输入基频可测 — f0_in=120.3Hz
+  [PASS] rate=1.25 长度≈1/rate — 38400 vs 期望 38400
+  [PASS] rate=1.25 基频基本不变（保持音高） — f0_out=120.3Hz 偏移=0.0%
+  [PASS] rate=0.8 长度≈1/rate — 60000 vs 期望 60000
+  [PASS] rate=0.8 基频基本不变（保持音高） — f0_out=120.3Hz 偏移=0.0%
+  [PASS] 对照：朴素重采样会变调（证明不能用 playbackRate） — 偏移=24.3%
+
+[4] 说话人旁路 — 定稿先出，spk 晚到补发（EXT-002）
+  [PASS] 定稿时 spk=None（不阻塞）
+  [PASS] 未满 3 s → 音色为预设 A — voice=A
+  [PASS] 满 3 s → 音色切换为该说话人 — voice=S1
+  [PASS] spk=None 时回落上一句音色
+  [PASS] 统计里 blocking_diarization=False
+
+[5] 桥接会话 — PCM 帧 → 段 → 配音任务
+[ext-thread-limits] 已限制线程数（EXT-011）：OMP_NUM_THREADS=1 (was unset); MKL_NUM_THREADS=1 (was unset); OPENBLAS_NUM_THREADS=1 (was unset); NUMEXPR_NUM_THREADS=1 (was unset) ⇒ 必须早于 numpy/openvino import 生效
+[bridge 18:35:28] 分段上限 3.5 s（D=10.0 s）
+  [PASS] 产生了配音任务 — 1 个
+  [PASS] 任务含 t_start/t_end/src/tgt/spk 字段
+  [PASS] 任务含 fit（时长适配结果）
+  [PASS] spk 为 None 时不阻塞（EXT-002）
+[bridge 18:35:28] 帧不连续: 期望 400000 实际 409999（丢 9999 样本）
+  [PASS] sample_index 不连续被计数 — n_dropped 0 → 1
+
+[6] 安全 — Origin / token 校验
+  [PASS] chrome-extension 源放行
+  [PASS] http 源被拒
+  [PASS] 空 Origin 被拒
+  [PASS] 空 Origin 字符串被拒
+  [PASS] token 首次生成并落盘
+  [PASS] 正确 token 通过
+  [PASS] 错误 token 被拒
+  [PASS] token 重载一致（幂等）
+
+[7] EXT-006 P1 — 时间基点连续性（段起始不归零）
+[bridge 18:35:28] 分段上限 3.5 s（D=10.0 s）
+  [PASS] 产生了多段配音任务 — 17 段
+  [PASS] 多段 t_start 单调递增（不归零） — 0.00s, 3.50s, 7.00s, 10.50s, 14.00s, 17.50s, 21.00s, 24.50s, 28.00s, 31.50s, 35.00s, 38.50s, 42.00s, 45.50s, 49.00s, 52.50s, 56.00s
+  [PASS] 多段 t_end 单调递增
+  [PASS] 后续段的 t_start > 0（不是相对缓冲区） — 3.50s, 7.00s, 10.50s, 14.00s, 17.50s, 21.00s, 24.50s, 28.00s, 31.50s, 35.00s, 38.50s, 42.00s, 45.50s, 49.00s, 52.50s, 56.00s
+  [PASS] 段时长落在 [3,8] s（末段可短） — 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s, 3.50s
+
+[8] EXT-006 P1 — 余量统计口径（原声结束→TTS 就绪）
+  [PASS] 余量统计有 n_segments — n_segments=17
+  [PASS] 余量统计有 n_negative 与新滞后口径（末句滞后 + 斜率） — keys=['basis', 'deadline', 'definition', 'lag_definition', 'lag_growth_intercept_all_sec', 'lag_growth_intercept_sec', 'lag_growth_r2', 'lag_growth_r2_all', 'lag_growth_slope_all_sec_per_sec', 'lag_growth_slope_note', 'lag_growth_slope_sec_per_sec', 'lag_n_fit_points', 'lag_n_fit_points_all', 'last_segment_lag_sec', 'max', 'max_lag_sec', 'mean', 'min', 'n_negative', 'n_segments', 'p50', 'p95', 'ready_after_orig_end']
+  [PASS] 余量统计含排程截止余量（deadline） — keys=['basis', 'deadline', 'definition', 'lag_definition', 'lag_growth_intercept_all_sec', 'lag_growth_intercept_sec', 'lag_growth_r2', 'lag_growth_r2_all', 'lag_growth_slope_all_sec_per_sec', 'lag_growth_slope_note', 'lag_growth_slope_sec_per_sec', 'lag_n_fit_points', 'lag_n_fit_points_all', 'last_segment_lag_sec', 'max', 'max_lag_sec', 'mean', 'min', 'n_negative', 'n_segments', 'p50', 'p95', 'ready_after_orig_end']
+  [PASS] 排程截止余量含负值计数与 P50/P95
+  [PASS] ★ 顶层余量口径标注为 deadline（缺陷 17） — basis=deadline
+  [PASS] ★ 顶层余量带 definition（reviewer 可核对口径） — 排程余量 = (t0 + t_start + D) − TTS就绪时刻；负数 = 该句赶不上自己的播放时刻（滞后）
+  [PASS] ★ 顶层 n_negative == deadline 组 n_negative（口径一致） — top=0 dl=0
+  [PASS] ★ 顶层末句滞后 == deadline 组末句滞后（口径一致） — top=0.0 dl=0.0
+  [PASS] ★ 顶层斜率 == deadline 组斜率（口径一致） — top=None dl=None
+  [PASS] ★ 就绪延迟口径保留为子组（原始信息不丢） — keys=['basis', 'deadline', 'definition', 'lag_definition', 'lag_growth_intercept_all_sec', 'lag_growth_intercept_sec', 'lag_growth_r2', 'lag_growth_r2_all', 'lag_growth_slope_all_sec_per_sec', 'lag_growth_slope_note', 'lag_growth_slope_sec_per_sec', 'lag_n_fit_points', 'lag_n_fit_points_all', 'last_segment_lag_sec', 'max', 'max_lag_sec', 'mean', 'min', 'n_negative', 'n_segments', 'p50', 'p95', 'ready_after_orig_end']
+  [PASS] ★ EXT-008：顶层已删除「余量求和」量 cumulative_lag_sec — keys=['basis', 'deadline', 'definition', 'lag_definition', 'lag_growth_intercept_all_sec', 'lag_growth_intercept_sec', 'lag_growth_r2', 'lag_growth_r2_all', 'lag_growth_slope_all_sec_per_sec', 'lag_growth_slope_note', 'lag_growth_slope_sec_per_sec', 'lag_n_fit_points', 'lag_n_fit_points_all', 'last_segment_lag_sec', 'max', 'max_lag_sec', 'mean', 'min', 'n_negative', 'n_segments', 'p50', 'p95', 'ready_after_orig_end']
+  [PASS] ★ EXT-008：deadline 子组也已删除 cumulative_lag_sec — deadline keys=['lag_growth_slope_sec_per_sec', 'last_segment_lag_sec', 'max', 'max_lag_sec', 'mean', 'min', 'n_negative', 'p50', 'p95']
+  [PASS] ★ EXT-008：旧口径 peak_lag_sec 也一并删除（同样是求和量） — keys=['basis', 'deadline', 'definition', 'lag_definition', 'lag_growth_intercept_all_sec', 'lag_growth_intercept_sec', 'lag_growth_r2', 'lag_growth_r2_all', 'lag_growth_slope_all_sec_per_sec', 'lag_growth_slope_note', 'lag_growth_slope_sec_per_sec', 'lag_n_fit_points', 'lag_n_fit_points_all', 'last_segment_lag_sec', 'max', 'max_lag_sec', 'mean', 'min', 'n_negative', 'n_segments', 'p50', 'p95', 'ready_after_orig_end']
+  [PASS] ★ 反向断言：就绪延迟恒正时，旧口径会读出 n_negative=0（假结论） — 旧口径确实是 0
+  [PASS] ★ 反向断言：新口径读出 n_negative=5（真结论，非恒真） — n_negative=5
+  [PASS] ★ 反向断言：新口径末句滞后为正（真滞后） — last_segment_lag_sec=44.0
+  [PASS] ★ EXT-008 反向断言：余量随时间变负 ⇒ 斜率为负（滞后在累积） — slope=-1.0
+  [PASS] ★ EXT-008 反向断言：余量恒定 ⇒ 斜率为 0（不是恒真的负数） — slope=0.0
+  [PASS] ★ EXT-008 反向断言：余量恒定时末句滞后 = 50（= 单句值，不是求和） — last=50.0
+  [PASS] ★ EXT-008 反向断言：旧求和量会读出 500（=10×50），新口径是 50 — new_last=50.0
+  [PASS] ★ EXT-008：精确分解逐段闭合（残差 < 0.01 s） — max_residual=0.0
+  [PASS] ★ EXT-008：喂帧慢（backlog）= 45−15 = 30 s — backlog=30.0
+  [PASS] ★ EXT-008：结构项（struct）= 段长 15 − 缓冲窗 10 = 5 s — struct=5.0
+  [PASS] ★ EXT-008：引擎项（proc）= ASR+MT+TTS = 8 s — proc=8.0
+  [PASS] ★ EXT-008：三分量之和 = 该句滞后 43 s — 30.0+5.0+8.0 vs lag=43.0
+  [PASS] ★ EXT-008 反向断言：音频准时到达 ⇒ backlog ≈ 0（不是恒正） — backlog=0.0
+  [PASS] ★ EXT-008 反向断言：音频准时到达 ⇒ 该句滞后只剩引擎耗时 — lag=2.0 proc=2.0
+  [PASS] ★ EXT-008 反向断言：段长 < 缓冲窗 ⇒ struct 为负（有提前量） — struct=-5.0
+  [PASS] ★ EXT-008 反向断言：音频送晚 ⇒ backlog 占比 > 80%（喂帧慢是主体） — backlog_share=90.0%
+  [PASS] ★ EXT-008 反向断言：喂帧慢时引擎占比 < 20%（不是引擎的锅） — proc_share=4.0%
+
+[9] EXT-006 — 引擎语言映射守卫（必须显式传目标语言）
+  [FAIL] TTS 语言表只含引擎支持的 4 种 — ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh']
+  [PASS] MT 语言表与 TTS 对齐 — ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh']
+  [PASS] TTS 语言映射：en→English — English
+  [PASS] MT 目标码：en→en
+  [PASS] TTS 语言映射：zh→Chinese — Chinese
+  [PASS] 未知目标语言必须抛异常（不静默回落）
+  [PASS] 未知目标语言的 MT 也必须抛异常
+
+[10] EXT-006 — 失控闸阈值口径（与 App RUNAWAY 判据一致）
+  [PASS] 短句阈值 = max(3×est, est+8) ⇒ 取 est+8 — est=1.10s threshold=9.10s
+  [PASS] 长句阈值 = max(3×est, est+8) ⇒ 取 3×est — est=63.10s threshold=189.30s
+  [PASS] 墙钟仅宽兜底 max(60s,6×est)（失控按音频长度，只记日志不丢句） — sec=60.0s factor=6.0
+
+[11] EXT-006 P1 — flush 尾段（时间基点不归零）
+[bridge 18:35:28] 分段上限 3.5 s（D=10.0 s）
+  [PASS] 流式阶段已产出多段 — 17 段
+  [FAIL] flush 产出尾段 — 0 段
+  [PASS] flush 幂等（第二次无输出） — 0 段
+
+[12] EXT-006 P1 — stats marker（margin 不能丢）
+  [PASS] 旧写法会把 type 覆盖成 'stats'（缺陷复现） — type='stats'
+  [PASS] 新写法保留 '_stats' marker — type='_stats'
+  [PASS] 新写法保留 stats 的原始字段
+
+[13] EXT-006 P1 — 同步误差口径（EXT-001 原文）
+  [PASS] 同步误差：余量为正 ⇒ 误差 0 — 0.0
+  [PASS] 同步误差：余量为负 ⇒ 误差 = −余量 — 400.0 ms
+  [PASS] 同步误差统计含 p50/p95
+  [PASS] 同步误差口径写在报告里（可核对） — max(0, TTS就绪时刻 − (t0 + t_start + D)) × 1000
+
+[14] EXT-006 P1 — 客户端必须按实时速率喂帧
+  [PASS] 客户端有 realtime 开关 — ['port', 'token', 'frames', 'delay_sec', 'recv_timeout', 'realtime', 'frame_ms', 'expect_segments', 'flush', 'stats_timeout', 'dump_timeout']
+  [PASS] realtime 默认 True — default=True
+  [PASS] 客户端有 expect_segments（用于判断收尾） — ['port', 'token', 'frames', 'delay_sec', 'recv_timeout', 'realtime', 'frame_ms', 'expect_segments', 'flush', 'stats_timeout', 'dump_timeout']
+
+[EXT] EXT-006 — 编排器单实例守卫（重复启动回归）
+  [PASS] 首次调用放行并写自己的 PID — 单实例守卫就绪（本次 PID=2620）
+  [PASS] PID 文件内容 = 当前进程 PID — 2620 vs 2620
+  [PASS] ★ PID 文件里是存活进程 ⇒ 拦住重复启动 — 已有实例在跑（PID=2621，存活）⇒ 拒绝重复启动
+  [PASS] ★ 拒绝信息说明了持有者 PID — 已有实例在跑（PID=2621，存活）⇒ 拒绝重复启动
+  [PASS] PID 文件里是已死进程 ⇒ 放行（接管） — 单实例守卫就绪（本次 PID=2620）
+  [PASS] PID 文件里是自己 ⇒ 放行（不算重复启动） — 单实例守卫就绪（本次 PID=2620）
+  [PASS] ★ main() 里真的调用了守卫（不是只定义不用） — 源码含调用
+  [PASS] ★ 守卫拒绝时返回 rc=5（可被 CI 识别） — 源码含 return 5
+
+[EXT] EXT-034 ②④ — RTF 三口径分列 + 所需 D 估算
+  [PASS] ★ ② RTF_out = Σtts/Σspeech（可手算） — 0.5 ≠ 0.5
+  [PASS] ★ ② speech_over_src = Σspeech/Σsrc（可手算） — 1.2 ≠ 1.2
+  [PASS] ★ ② tts_over_src = Σtts/Σsrc（可手算） — 0.6 ≠ 0.6
+  [PASS] ★ ② 三口径互不相同（防「其实返回同一个数」） — {"RTF_out": 0.5, "speech_over_src": 1.2, "tts_over_src": 0.6}
+  [PASS] ★ ② 三口径自洽：tts_over_src == RTF_out × speech_over_src — 0.6 vs 0.6
+  [PASS] ★ ② 逐段也给了三口径（per_segment） — 3 条
+  [PASS] ★ ② 口径定义写进了 definitions（reviewer 可核对） — ['RTF_out', 'speech_over_src', 'tts_over_src']
+  [PASS] ★ ④ 起步耗时 = 首段长度 + ASR + MT + TTS（可手算） — 20.0 ≠ 20
+  [PASS] ★ ④ 稳态项为负时取 0（不给出负的缓冲要求） — steady=0.0
+  [PASS] ★ ④ D_required = 起步 + 稳态 + 安全（可手算） — 24.0 ≠ 24
+  [PASS] ★ ④ 当前 D 不足 ⇒ D_sufficient=False 且 gap 为负 — sufficient=False gap=-14.0
+  [PASS] ★ ④ D 足够 ⇒ D_sufficient=True 且 gap ≥ 0 — D=30 应足够
+  [PASS] ★ ④ D 估算里带上了三口径（便于交叉核对） — ['rtf_out', 'tts_over_src', 'speech_over_src']
+  [PASS] ★ ②⑥ 区分力：TTS 变快 ⇒ RTF_out 下降 — 0.45 ≠ 0.45
+  [PASS] ★ ②⑥ 区分力：TTS 变快 ⇒ speech_over_src **不变** — 1.2 vs 1.2
+  [PASS] ★ ②⑥ 区分力：TTS 变快 ⇒ tts_over_src 下降 — 0.54 < 0.6
+
+====================================================================
+结果：117 PASS / 2 FAIL / 共 119
+====================================================================

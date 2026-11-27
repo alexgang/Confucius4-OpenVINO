@@ -1,0 +1,82 @@
+{
+ "v0.4.23|v1.2|test_ext_selfcheck.py": {
+  "rc": 1,
+  "pass": 117,
+  "fail": 2,
+  "sec": 20.5,
+  "fail_lines": [
+   "[FAIL] TTS 语言表只含引擎支持的 4 种 — ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh']",
+   "[FAIL] flush 产出尾段 — 0 段",
+   "结果：117 PASS / 2 FAIL / 共 119"
+  ]
+ },
+ "v0.4.23|v1.2|test_p1_plumbing.py": {
+  "rc": 1,
+  "pass": 52,
+  "fail": 6,
+  "sec": 3.8,
+  "fail_lines": [
+   "结果：52 PASS / 6 FAIL / 共 58"
+  ]
+ },
+ "v0.4.23|v1.2.1|test_ext_selfcheck.py": {
+  "rc": 1,
+  "pass": 117,
+  "fail": 2,
+  "sec": 21.5,
+  "fail_lines": [
+   "[FAIL] TTS 语言表只含引擎支持的 4 种 — ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh']",
+   "[FAIL] flush 产出尾段 — 0 段",
+   "结果：117 PASS / 2 FAIL / 共 119"
+  ]
+ },
+ "v0.4.23|v1.2.1|test_p1_plumbing.py": {
+  "rc": 1,
+  "pass": 52,
+  "fail": 6,
+  "sec": 3.5,
+  "fail_lines": [
+   "结果：52 PASS / 6 FAIL / 共 58"
+  ]
+ },
+ "v0.4.25|v1.2|test_ext_selfcheck.py": {
+  "rc": 1,
+  "pass": 114,
+  "fail": 3,
+  "sec": 19.8,
+  "fail_lines": [
+   "[FAIL] TTS 语言表只含引擎支持的 4 种 — ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh']",
+   "[FAIL] flush 产出尾段 — 0 段",
+   "结果：114 PASS / 3 FAIL / 共 117"
+  ]
+ },
+ "v0.4.25|v1.2|test_p1_plumbing.py": {
+  "rc": 1,
+  "pass": 52,
+  "fail": 6,
+  "sec": 3.5,
+  "fail_lines": [
+   "结果：52 PASS / 6 FAIL / 共 58"
+  ]
+ },
+ "v0.4.25|v1.2.1|test_ext_selfcheck.py": {
+  "rc": 1,
+  "pass": 114,
+  "fail": 3,
+  "sec": 20.6,
+  "fail_lines": [
+   "[FAIL] TTS 语言表只含引擎支持的 4 种 — ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'ru', 'zh']",
+   "[FAIL] flush 产出尾段 — 0 段",
+   "结果：114 PASS / 3 FAIL / 共 117"
+  ]
+ },
+ "v0.4.25|v1.2.1|test_p1_plumbing.py": {
+  "rc": 1,
+  "pass": 52,
+  "fail": 6,
+  "sec": 3.3,
+  "fail_lines": [
+   "结果：52 PASS / 6 FAIL / 共 58"
+  ]
+ }
+}
