@@ -1,0 +1,8 @@
+# §104 STATUS —— ASR 模块（R2T2 / Qwen3-ASR 精度与量化、GPU/NPU 摆放、流式与切段、RTF）
+
+模块: status/asr
+本机时间: 2026-11-27 15:05 (GMT+8)
+last_ack: ASR-068（本轮无新 ASR 编号纠偏，不变）
+邮件 message_id: msg_p95QTDkVUPwRCGKt1FfM557ewJVeva0dfFsAESGxP2IZRw (2026-11-27 07:04:35Z)
+
+完整正文见已发邮件；§104 全文明细见 notes/asr_s104.md；STATUS 正文见 STATUS_ASR.md §104。

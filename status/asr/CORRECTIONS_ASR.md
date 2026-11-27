@@ -56,6 +56,8 @@
 | ASR-044 | 用户反馈：说话人识别不准确（v2.2 实测，2026-11-02 15:00） | 已完成（A/B 异常见 ASR-046） |
 | ASR-045 | 5 s 旁路窗口只改了一半：ASR 内核仍写死 10 s，v2.3 因此暂缓（App 审查 11-04 发现） | 已完成（reviewer 11-05 复核通过） |
 | ASR-046 | ASR-045 验收通过；5 s IR 的 xml 带本机绝对路径要清；asr113 两处异常；ASR-042 质量/省时口径 | 待处理 |
+| LOCK-001 | 机器锁死锁修复：计时/测速作业一律用 `shared\tools\machine_lock.py run` 运行，不再手工建/删 MACHINE_LOCK（跨模块，不占 ASR 编号） | 进行中（ASR 侧锁代码已改并自证 29/29；待下一次计时作业补日志两行） |
+| LOCK-002 | machine_lock.py v2 双格式锁文本、原子写（采纳 MT §126）；旧读锁器不得删活锁（跨模块，不占 ASR 编号） | 进行中（ASR 侧已加固并自证 29/29；APP 线程负责装 v2，已装 9 397 B / 11-27 11:32） |
 
 ---
 
@@ -804,3 +806,94 @@ reviewer 读了：STATUS §86、`status/asr/notes/asr_s86.md`、`qwen3asr_06b/de
 5. **缺段（③）**：旁路改用 `_spk_use_vocals()`——只有分离器 state=="ok" 才喂人声，starting / unavailable / 关 ⇒ 喂原声（同一个 `_spk_feed`，轴不断）。丢块：旁路队列上限 64 项，人声按约 5.85 s 一项喂入、原声按 100 ms 一项，实测 10 分钟未触发丢块；丢块上报 ASR 侧留到下一版（若你那边要求，再单开一条）。
 
 接下来 reviewer 会在 A 上用 voice=clone 跑实时 e2e，确认分段标签真的产出（修前应为零标签），结果附在 v0.4.19 交接里。
+## LOCK-001 [HIGH] 2026-11-26 19:59（QQ 邮箱下发，`msg_djwiubxX0MiOhxxIbtTN_j3QLwG7NZ4UQsnPA96DMypnuQ`）— 机器锁死锁修复：计时作业一律用 `shared\tools\machine_lock.py` 运行，不再手工建/删 MACHINE_LOCK
+
+> **本条是跨模块纠偏（收件：A 机全部线程 APP / ASR / MT / TTS / LFM）**，编号就用 `LOCK-001`，**不占模块编号**。
+> **由 ASR 线程于 2026-11-27 11:20 巡检轮收到并记录**（收到时点晚于该轮开工）。
+> **原文邮件正文见附件与发件方**；以下为 ASR 侧的登记摘要（**逐条引用原文，不改写**）。
+
+### 原文要点（reviewer 原文）
+- **问题**（用户 11-26 发现）：线程拿了 MACHINE_LOCK 之后，会话因 token 上限 / 429 / 中断停掉，
+  **锁文件没人删，其他线程永远等 ⇒ 死锁**。
+- **新机制**：锁由**作业进程**持有（`machine_lock.py run` 用 OS 级独占锁 `shared\MACHINE_LOCK.os`），
+  进程不管以什么方式结束（正常结束、崩溃、被杀、会话断掉）Windows 都会**自动释放**；
+  **会话本身不再持锁**。仍写人能看懂的 `shared\MACHINE_LOCK`
+  （`<模块> <pid> <时间> machine_lock.py <说明>` ＋ `job_pid …`），作业结束自动删除。
+  发现 `MACHINE_LOCK` 文本存在但背后没有活着的系统锁 ⇒ 判为**残留**，自动改名归档
+  （`MACHINE_LOCK.released_stale_<时间>`）并接手；旧式手写锁 PID 已死或超 180 分钟也判残留。
+  每个作业硬超时（默认 240 分钟）⇒ 超时杀整棵进程树并释放锁；等锁最多 120 分钟（退出码 **75**，不跑作业）。
+- **用法**：`machine_lock.py run --module <模块> --note "<说明>" -- <命令> [--wait-min 120] [--timeout-min 240]`；
+  一轮多臂可以整个编排脚本放进一次 `run`，也可以**每臂一次 `run`**。
+- **纪律**：**不再手工创建或删除 MACHINE_LOCK**；不在会话里「先拿锁、做几步、再放锁」；
+  查看用 `machine_lock.py status`，清理残留用 `machine_lock.py reclaim`；
+  脚本里自带的取锁/放锁代码（CreateNew 循环、finally 删锁）改成调用本工具或在外面套一层 `run`。
+- **退出码**：作业自己的退出码；**75** = 等锁超时没跑；**124** = 作业超时被杀。
+- **验收**（对每个线程）：**下一次计时作业的日志里有 `[machine_lock] acquired …` 和
+  `[machine_lock] released (rc=…)` 两行**。
+- **安装责任在 APP 线程**（只装一次）：把附件 `machine_lock.py.txt` 存为
+  `C:\Users\Trekker-PTL\shared\tools\machine_lock.py`，用包内 python 跑 `machine_lock.py status` 确认；
+  并在 `shared\README_LOCK.md` 顶部加一段指向本条。
+
+### ASR 侧执行状态（2026-11-27 11:20–11:45）
+- 🟢 **工具已安装**：`C:\Users\Trekker-PTL\shared\tools\machine_lock.py` **9 397 B** / mtime
+  **2026-11-27 11:32**（= **LOCK-002 的 v2 版**，见下条）；`shared\README_LOCK.md` **1 341 B** /
+  mtime 11-26 21:43，顶部已有 LOCK-001 段 ⇒ **安装责任（APP 线程）已完成**。
+  `machine_lock.py status` 实测输出 **`FREE`**。
+- 🟢 **ASR 侧脚本改造已落盘**（`qwen3asr_06b\scripts\asr_lock_common.py`，本轮改）：
+  ① `parse_lock()` 新增第 ④ 分支 ⇒ 能解析 `machine_lock.py` 的**单格式首行**
+  （`<module> <pid> <时间> machine_lock.py <说明>`）⇒ **以前解析不出 pid**（实测 `pid=None`）。
+  ② 新增 `os_lock_live()` ⇒ 只读探测 `shared\MACHINE_LOCK.os` 是否被活作业独占。
+  ③ `lock_is_stale()` 新增前置判据 ⇒ **背后有活 OS 锁 ⇒ 绝不判陈旧**（LOCK-002 点名的事故根因修正）。
+  ④ 新增 `inside_machine_lock_run()` ＋ `acquire()` 第 0 步 ⇒ **已在 `machine_lock.py run` 里的作业进程
+  不再抢锁**（否则作业会等自己 ⇒ **死锁**，正是本条要根治的那一类）。
+  ⑤ `release_lock_if_owner()` 新增护栏 ⇒ **锁由 `machine_lock.py` 持有时本脚本绝不删它**。
+  ⑥ `LockProbe.check()` 新增 `machine_lock.py` 分支 ⇒ 不再把「外层持锁」误判成「锁被抢」
+  ⇒ **不会把有效计时误标成 `timing_valid=false`**。
+- 🟢 **验收**：`qwen3asr_06b\scripts\asr_lock_001_verify.py` ⇒ **29/29 PASS**（含 v1/v2 两种
+  `job_pid` 写法、活 OS 锁下不删锁、run 内不死锁、LockProbe 不误判）；**原有回归
+  `scripts\asr_lock_verify.py` ⇒ 19/19 PASS（零回归）**。全程只在临时目录操作，
+  **未触碰真实 `shared\MACHINE_LOCK`**。
+- 🟡 **本轮无计时/测速作业**（纯只读复算 ＋ 锁代码单测）⇒ **LOCK-001 的「下一次计时作业日志里有
+  `[machine_lock] acquired` / `released (rc=…)` 两行」这一条**尚未产生实测证据 ⇒
+  **留到本模块下一次真正的计时作业时再补**（届时用 `machine_lock.py run --module asr` 起）。
+- 🟢 **session_lease 租约照旧**（它管「同一模块只有一个会话」，与机器锁是两回事）⇒ ASR 租约流程不变。
+
+## LOCK-002 [HIGH] 2026-11-26 22:48（QQ 邮箱下发，`msg_JC9_njlVEGhbz0AnA5nfya7WYvcIcQA6hmmZuC4WqOepkA`）— machine_lock.py v2：双格式锁文本、原子写（采纳 MT §126；APP 线程替换已安装的文件）
+
+> **本条是跨模块纠偏（收件：A 机全部线程 APP / ASR / MT / TTS / LFM）**，编号就用 `LOCK-002`，**不占模块编号**。
+> **由 ASR 线程于 2026-11-27 11:20 巡检轮收到并记录**。
+> **原文邮件正文见附件与发件方**；以下为 ASR 侧的登记摘要（**逐条引用原文，不改写**）。
+
+### 原文要点（reviewer 原文）
+- **问题**（MT §126 §3.1，已确认）：v1 写的是 `mt 12508 2026-11-26 22:05:02 machine_lock.py …` ＋ `job_pid …`。
+  旧的**按模块各写各的**读锁器（例如 App 的 `replay_c134_mt.py::_lock_info()`）解析的是 `key: value` 行
+  ⇒ 它们读到的 pid = 0 ⇒ 判定锁已陈旧 ⇒ **删掉了活锁**。
+- **v2**（附件 `machine_lock.py.txt`，已在 reviewer 机器上测过）：锁文本**保留首行**并**追加**
+  `module:` / `pid:` / `started:` / `host:` / `job_pid:` / `timeout_min:` 这些 key-value 行；
+  **每次写都是原子的**（临时文件 ＋ `os.replace`）。模拟旧的 key-value 读锁器能解析出正确 pid；
+  排队、超时杀、自动释放都仍然通过。
+- **APP**：用附件覆盖 `C:\Users\Trekker-PTL\shared\tools\machine_lock.py`（去掉 `.txt`），
+  跑一次 `status` 和一次短的 `run`，并把锁文本贴进 STATUS（应带 `pid:` 行）。
+- **MT**：可以丢掉自己的双格式绕行、直接用工具的文本；若保留，不得冲突。
+- **每个线程**：旧代码里的取锁/放锁仍应按 LOCK-001 第 4 条改成 `machine_lock.py run`；
+  在改完之前，**旧读锁器至少不能删掉背后有活 OS 锁的锁**（`machine_lock.py status` 显示 HELD）。
+
+### ASR 侧执行状态（2026-11-27 11:20–11:45）
+- 🟢 **v2 已由 APP 线程装好**：`shared\tools\machine_lock.py` **9 397 B** / mtime **2026-11-27 11:32**
+  ⇒ 实测含 `_atomic_write`（临时文件 ＋ `os.replace`）与**双格式锁文本**
+  （首行 ＋ `module:` / `pid:` / `started:` / `host:` 四个 key-value 行）⇒
+  **LOCK-002 的 v2 部分已生效**；🟡 **APP 要求的「跑一次 `status` 和一次短的 `run` 并把锁文本贴进
+  STATUS」是 APP 线程自己的验收项**，ASR 侧只读确认了文件内容。
+- 🟢 **ASR 侧旧读锁器已按本条最后一句加固**：`asr_lock_common.lock_is_stale()` 新增
+  **`os_lock_live()` 前置判据** ⇒ **背后有活 OS 锁 ⇒ 绝不回收** ⇒
+  **即使旧读锁器把 pid 读成 0，也删不掉活锁**（LOCK-002 点名的事故根因修正）。
+  实测（`asr_lock_001_verify.py` ③）：临时目录里造一把**真活**的 OS 锁 ＋ 文本 pid 已死
+  ⇒ `lock_is_stale()` 返回 **False**（不删）；不造活锁时返回 True（可回收）。
+- 🟢 **ASR 侧读锁器已能解析 v2 双格式**（`parse_lock()` ①分支命中 `pid:` 行）⇒
+  实测 v2 文本 `pid`=**12345**、`module`=**asr**、`started`=**2026-11-27 11:00:00** 全部正确；
+  **ASR 自有格式与历史等号格式零回归**（`asr_lock_verify.py` 19/19 PASS）。
+- 🟢 **`job_pid` 的两种写法都认**（v1 空格同行 `job_pid 12345 timeout_min 240`；
+  v2 key-value 单行 `job_pid: 12345`）⇒ 正则写成 `job_pid\s*[:=]?\s*(\d+)`（**不要求行尾**）。
+  ⚠️ **这是本轮实测抓到的真缺陷**：初版正则写成要求行尾的形式
+  ⇒ **v1 写法解析不出** ⇒ `inside_machine_lock_run()` 返回 False ⇒ `acquire()` 会**等自己 120 s**
+  （验收脚本 ④ 首轮 4 项 FAIL 中有 3 项由此而来）⇒ 已修正。
