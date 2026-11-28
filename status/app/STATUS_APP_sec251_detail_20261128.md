@@ -219,6 +219,24 @@
 | 推送 | 🟢 **普通 push**（EXT `9b8ade4..4868a29` ⇒ `live-dub-ext`）；**无 force push** |
 | 打包 | 🟢 **未打包**（用户未通知） |
 
+### §7.1 STATUS 邮件（T-MAIL-003 必须发）已发并已发箱回读核对
+
+- 🟢 **已发**：`msg_AMWQx7Mrw37UrvRdNq8yvrO9Sa-JmryY3B6XPNgdJdOh7Q`（2026-11-28T11:37:20Z）
+  收件人 `alexchen7694@agent.qq.com`，主题 `[C4][A][STATUS][APP] §251 — …`。
+- 🟢 **走直连 API**（`results/app/_app251_direct_send.py`）：**正文从磁盘读**（`app251_status_email_body.txt`）
+  ⇒ **无人工转写环节** ⇒ 杜绝 §250 的「实发件与入库件差 15 B」。
+  两步 token 流程：先不带 token ⇒ `42801` 拿 `ctk_…` ⇒ 带 token **原样**重发 ⇒ `queued:true`；
+  **明文 token 只在内存**（用完 `del`），**绝不落盘**。
+- 🟢 **已发箱回读核对**（`results/app/_app251_verify_email.py`，证据 `app251_status_email_sent.json`）：
+  | 项 | 实测 |
+  |---|---|
+  | 入库正文 | **9 698 B**／sha256 `39f79b72e7d07fce…`（去尾空白后 9 697 B） |
+  | 实发正文（服务端 HTML → 反向规范化） | **9 697 B**／sha256 `39f79b72e7d07fce…` |
+  | **逐字节等价** | ✅ **True** |
+  | **首/中/尾三地标** | ✅ **全命中**（`【0 结论】` / `【4 🔴 系统性缺口…】` / `—— App（…§251）`） |
+  | **截断** | ❌ **无**（§224 纪律） |
+- 🟢 已发正文由**脚本**从邮箱 API 拉取落盘（`app251_status_email_sent.html`，13 249 B）⇒ **不手抄**。
+
 ---
 
 ## §8 收尾指纹（`CORRECTIONS_APP.md` 四项）

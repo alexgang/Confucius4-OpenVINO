@@ -1,0 +1,10 @@
+{
+ "script": "_app251_direct_send.py",
+ "endpoint": "https://api.mail.qq.com/mcp",
+ "to": "alexchen7694@agent.qq.com",
+ "bytes_sent": 9698,
+ "sha256_body_sent": "40f5dc81ec439408b572a32a1fa5ac680ebb79327aec6caa8cfe7c57fb5898fb",
+ "subject": "[C4][A][STATUS][APP] §251 — 无新 App 纠偏(last_ack 仍 APP-157)＋接续死会话闭合 §251 断点＋查出并修掉真缺陷：player.js 3×U+FFFD 阻断出包（已进客户 v1.2.1.zip）",
+ "queued": false,
+ "response_head": "{\"jsonrpc\": \"2.0\", \"id\": 2, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"data\\\":{\\\"queued\\\":true,\\\"_hints\\\":{\\\"self\\\":\\\"POST /v1/aliases/alias_GYygHm59UPtt4Fs11qwcrpkWgT32/messages/send\\\",\\\"actions\\\":[{\\\"name\\\":\\\"list_messages\\\",\\\"method\\\":1,\\\"href\\\":\\\"/v1/aliases/alias_GYygHm59UPtt4Fs11qwcrpkWgT32/messages\\\",\\\"requires_scope\\\":\\\"mail:read\\\"}],\\\"suggested_action\\\":\\\"list_messages\\\"}},\\\"rsp_headers\\\":{}}\"}]}}"
+}

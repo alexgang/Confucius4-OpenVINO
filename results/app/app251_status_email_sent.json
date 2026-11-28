@@ -1,0 +1,18 @@
+{
+ "script": "_app251_verify_email.py",
+ "message_id": "msg_AMWQx7Mrw37UrvRdNq8yvrO9Sa-JmryY3B6XPNgdJdOh7Q",
+ "sent_at": "2026-11-28T11:37:20Z",
+ "bytes_disk": 9698,
+ "bytes_disk_compared": 9697,
+ "sha256_disk": "39f79b72e7d07fce523dea82c7620927559ff6eb66e69ccd42308c489ae0f5b5",
+ "bytes_sent_normalized": 9697,
+ "sha256_sent_normalized": "39f79b72e7d07fce523dea82c7620927559ff6eb66e69ccd42308c489ae0f5b5",
+ "identical_after_denorm": true,
+ "landmarks": {
+  "head": true,
+  "mid": true,
+  "tail": true
+ },
+ "all_landmarks_hit": true,
+ "truncated": false
+}
