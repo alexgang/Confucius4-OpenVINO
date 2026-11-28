@@ -1636,7 +1636,7 @@ function scheduleDub(msg) {
     tgt: (msg.tgt == null ? null : String(msg.tgt)),
     matched: false, probe: isProbe,
   });
-  // ★★★★★ EXT-034 ①：**每段配音都要能算���同步误差**（不靠 onset 配对）。
+  // ★★★★★ EXT-034 ①：**每段配音都要能算出同步误差**（不靠 onset 配对）。
   //   记下排程起点 ⇒ 等 `onended` 回调反推**真实起播**。
   //   ⚠️ probe（自测探针）**不记** —— probe 不是真实配音，
   //     混进来会污染 EXT-033 D 的口径（EXT-024 P0③ 已有同样要求）。
