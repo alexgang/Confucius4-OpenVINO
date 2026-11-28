@@ -1,0 +1,43 @@
+{
+  "pass_list": [
+    "G1 能从 pack_v13.py 抽出闸门清单",
+    "G2 app049「包路径写死」闸门在打包路径上",
+    "G3 app049 闸门现在是绿的（exit=0）",
+    "G4 app049 闸门输出「0 处违规」",
+    "G5 app049 无过期白名单条目（白名单没腐烂）",
+    "G6 抽取器能看见**注入的**新闸门调用（有鉴别力）",
+    "G7 抽取器在副本上仍抽到 4 个原闸门（未因注入而漏抽）"
+  ],
+  "fail_list": [],
+  "skip_list": [
+    "闸门 check_internal_material.py（需 --pkg ⇒ 需指定客户包，本轮不代选）",
+    "闸门 results/app/app170_version_identity_gate.py（需 --pkg ⇒ 需指定客户包，本轮不代选）",
+    "闸门 live_caption/sync_c172_version_identity_to_pkg.py（需 --pkg ⇒ 需指定客户包，本轮不代选）"
+  ],
+  "n_calls": 4,
+  "calls": [
+    {
+      "script": "check_internal_material.py",
+      "argv": [
+        "--pkg"
+      ]
+    },
+    {
+      "script": "results/app/app049_pkg_path_hardcode_gate.py",
+      "argv": []
+    },
+    {
+      "script": "results/app/app170_version_identity_gate.py",
+      "argv": [
+        "--pkg"
+      ]
+    },
+    {
+      "script": "live_caption/sync_c172_version_identity_to_pkg.py",
+      "argv": [
+        "--pkg"
+      ]
+    }
+  ],
+  "verdict": "PASS"
+}

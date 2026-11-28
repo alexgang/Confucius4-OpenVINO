@@ -1,0 +1,24 @@
+{
+ "target": "C:\\Users\\Trekker-PTL\\live_dub_ext\\extension\\player.js",
+ "backup": "C:\\Users\\Trekker-PTL\\live_dub_ext\\.tmp\\app251\\player.js.bak_app251_ufffd",
+ "bytes_before": 203894,
+ "bytes_after": 203888,
+ "sha256_before": "eacdb3c1a384b5cd0222fca7b3e0dfd65ec740dd97fa9c30fefd2def5468cb37",
+ "sha256_after": "aca38e993c2e82200a82df55bfbcadfe166ab66be1b279e65a2d0966608e6314",
+ "old_span_hex": "efbfbdefbfbdefbfbd",
+ "new_span_hex": "e587ba",
+ "pass_list": [
+  "① 差异只有一处（old=9 B → new=3 B）",
+  "①b 行数不变（改的是行内，不增删行）",
+  "①c 文件行尾风格不变（CRLF/LF 计数相等）",
+  "② 整文件 U+FFFD = 0",
+  "③ 整文件是合法 UTF-8（严格解码）",
+  "④ 复原后的完整句子在正确位置",
+  "⑥ 修好的文件 ⇒ 内部素材闸门 PASS（rc=0）",
+  "⑦ 反证组：注入 U+FFFD 的副本 ⇒ 闸门 FAIL（rc=1）",
+  "⑦b 闸门确实点名了 player.js（不是别的理由 FAIL）",
+  "⑤ 反证组：把「出」改回 U+FFFD ⇒ 闸门 FAIL（rc=1）"
+ ],
+ "fail_list": [],
+ "verdict": "PASS"
+}

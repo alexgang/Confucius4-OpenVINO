@@ -1,0 +1,14 @@
+{
+  "verdict": "PASS",
+  "n_violations": 0,
+  "violations": [],
+  "whitelist": {
+    "results/app/ftp_probe.py": "FTP 远端 zip 文件名（业务参数，非本地路径）",
+    "results/app/ftp_probe2.py": "FTP 远端 zip 文件名（业务参数，非本地路径）",
+    "live_caption/diag_c111_revert_verify.py": "一次性历史诊断（复现 C-111 当时状态），有意写死",
+    "live_caption/diag_c111_v3_verify.py": "一次性历史诊断（复现 C-111 当时状态），有意写死",
+    "results/app/app014b_v15_preship_check.py": "命中在 docstring 用法示例里，真代码用 --pkg 参数",
+    "results/app/app049_pkg_path_hardcode_gate.py": "闸门自身（docstring 描述事故时写了包名）"
+  },
+  "pkg_module_count": 20
+}

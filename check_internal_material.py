@@ -119,6 +119,12 @@ SKIP_CONTENT_EXT = {
     '.xml', '.bin', '.npy', '.wav', '.mp3', '.flac', '.ogg', '.pcm',
     '.png', '.jpg', '.jpeg', '.gif', '.pdf', '.zip', '.gz', '.pyc',
     '.onnx', '.blob', '.m4a', '.aac',
+    # 🔴 §251 修正：**字体是压缩二进制**，用文本正则扫它会**偶然命中**
+    #   （实测 `IBMPlexMono-Bold.woff2` 的随机字节出现 `qgS` ⇒ 命中
+    #   `Q[G]S` ⇒ 报「会议特征串」⇒ 闸门 FAIL ⇒ **拒绝打包**）。
+    #   ⇒ 字体**仍然查文件名**（NAME_PATTERNS 不变），
+    #     只是**不把压缩字节当文本扫**（与其它二进制扩展名同口径）。
+    '.woff', '.woff2', '.ttf', '.otf', '.eot', '.fon',
 }
 
 # ── C. 文本编码完整性（U+FFFD / 解码失败）──────────────────────────

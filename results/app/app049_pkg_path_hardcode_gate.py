@@ -130,6 +130,27 @@ WHITELIST = {
     'results/app/_app589_three_forms_defaults_check.py':
         '一次性历史诊断（三种包形态的出厂默认值核对，基准是 v2.1/v2.4），'
         '有意写死；不进包',
+    'results/app/_app133_verify_pkg.py':
+        '一次性历史诊断（APP-133 轮：核对 v2.6 包内 EXT 与 commit b2a4978 逐字节一致），基准就是当时的 v2.6，有意写死；不进包',
+    'results/app/_app233_verify_manifest_sync.py':
+        '一次性历史诊断（§233 轮：sync_c172 的 MANIFEST.version 同步修复复核），基准就是当时的 v2.5/v2.6，有意写死；不进包',
+    'results/app/_app233_verify_sec233.py':
+        '一次性历史诊断（§233 轮：§233 写入后的独立复核），断言的就是当时 STATUS 里写死的 v2.6/v2.1 字面量，有意写死；不进包',
+    'results/app/_app233_verify_sync_c172.py':
+        '一次性历史诊断（§233 轮：sync_c172 双标题根因修复的行为级复核），基准就是当时的 v2.6，有意写死；不进包',
+    'results/app/_app233_verify_sync_c172_e2e.py':
+        '一次性历史诊断（§233 轮：sync_c172 两处修复的端到端复核，用影子包），基准就是当时的 v2.6，有意写死；不进包',
+    'results/app/_app234_probe_anchor.py':
+        '一次性历史诊断（§234 轮：定位「锚点命中 2 次」的精确机制的探针），基准就是当时的 v2.5/v2.6，有意写死；不进包',
+    'results/app/_app234_verify_anchor_fix.py':
+        '一次性历史诊断（§234 轮：sync_c172「插入锚点唯一性」修法的独立复核），基准就是当时的 v2.6，有意写死；不进包',
+    'results/app/_app234_verify_identity_tool.py':
+        '一次性历史诊断（§234 轮：sync_pkg_identity.py 的行为级复核），基准就是当时的 v2.6/v2.7/v2.8，有意写死；不进包',
+    'results/app/_app235_verify_evidence_scope.py':
+        '一次性历史诊断（§235 轮：sync_pkg_identity.py「证据作用域」修复的行为级复核），基准就是当时的 v2.6/v2.7，有意写死；不进包',
+    'live_caption/_app137_candidate_check.py':
+        '一次性历史诊断（APP-137 §3 的包内容核对，离线只读），基准就是当时的 v2.6，有意写死；不进包',
+
 }
 
 

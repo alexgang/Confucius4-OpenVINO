@@ -1,0 +1,48 @@
+{
+ "pkg": "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6",
+ "n_pass": 3,
+ "n_fail": 1,
+ "n_skip": 0,
+ "verdict": "FAIL",
+ "results": [
+  {
+   "script": "results/app/app049_pkg_path_hardcode_gate.py",
+   "argv": [],
+   "rc": 0,
+   "pass_": true,
+   "tail": "known>:155: SyntaxWarning: invalid escape sequence '\\S'\n<unknown>:6: SyntaxWarning: invalid escape sequence '\\.'\n<unknown>:8: SyntaxWarning: invalid escape sequence '\\_'\n<unknown>:8: SyntaxWarning: invalid escape sequence '\\_'\n<unknown>:68: SyntaxWarning: invalid escape sequence '\\-'\n<unknown>:16: SyntaxWarning: invalid escape sequence '\\h'\n<unknown>:15: SyntaxWarning: invalid escape sequence '\\C'"
+  },
+  {
+   "script": "check_internal_material.py",
+   "argv": [
+    "--pkg",
+    "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6"
+   ],
+   "rc": 1,
+   "pass_": false,
+   "tail": "[待打包目录] C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6\n  命中 1 个内部素材\n    ⚠️ ext/extension/player.js  (编码规则：文本编码：含 3 个 U+FFFD 乱码字符)\n\n结论：FAIL —— 存在内部素材，禁止打包/提交"
+  },
+  {
+   "script": "results/app/app170_version_identity_gate.py",
+   "argv": [
+    "--pkg",
+    "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6"
+   ],
+   "rc": 0,
+   "pass_": true,
+   "tail": "============\nPASS=19 / FAIL=0 / verdict=PASS\n\n提醒（**不阻断打包**）：\n  · I1b MANIFEST.version == 目标版本 2.6（升版未刷新；修法：sync_c172_version_identity_to_pkg.py --pkg <包目录>） manifest=2.5 target=2.6\n  · D4 README_zh 有 v2.6 改动说明段（恰好 1 次） count=2\n==========================================================================\n证据：C:\\Users\\Trekker-PTL\\confucius4-openvino\\results\\app\\app170_version_identity_gate_evidence.json"
+  },
+  {
+   "script": "live_caption/sync_c172_version_identity_to_pkg.py",
+   "argv": [
+    "--pkg",
+    "C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6",
+    "--dry-run"
+   ],
+   "rc": 0,
+   "pass_": true,
+   "dry_run": true,
+   "tail": "IFEST.json\n  APPLIED  MANIFEST.version: '2.5' -> '2.6'\n  字节 23421 -> 23421 ；SHA256 84a08d895da4aaa0 -> c1639944f977895a\n\n结论：DRY-RUN OK\n\n⚠️ 提醒：本脚本只同步**版本标识**（标题 / NOTICE / MANIFEST.version）。\n   「改动说明」章节**正文由人撰写** ⇒ 脚本只负责**插入**，不改正文。\n   若本版本有新功能，请用 --changelog-zh / --changelog-en 插入对应章节。\n   验收：python results/app/app170_version_identity_gate.py --pkg \"C:/Users/Trekker-PTL/Confucius4_LiveCaption_v2.6\""
+  }
+ ]
+}

@@ -61,13 +61,28 @@ def main():
     # ── 在**临时副本**里制造缺陷 ⇒ 闸门必须抓到 ──
     tmp = tempfile.mkdtemp(prefix='app049_selftest_')
     try:
-        # 只复制闸门扫描需要的两个根（省时间）
+        # 🔴 §251：**只复制 `*.py`**（不整树 copytree）。
+        #   原因：`shutil.copytree` **会跟随 Windows junction** ⇒
+        #   `results/app/**/iso_localappdata/Confucius4LiveCaption/` 下的
+        #   16 个 junction 会被展开成真实副本 ⇒ 实测 **160 GB** ⇒ C: 盘写满到
+        #   100% ⇒ 自检以 `WinError 112 磁盘空间不足` 崩溃 ⇒ 自检永远跑不完。
+        #   🔴 闸门**只判 `.py` 文件** ⇒ 只复制 `.py` **不改变闸门行为**。
         for rel in ('results/app', 'live_caption'):
             src = os.path.join(REPO, rel.replace('/', os.sep))
             dst = os.path.join(tmp, rel.replace('/', os.sep))
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copytree(src, dst, dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns('__pycache__'))
+            os.makedirs(dst, exist_ok=True)
+            for dirpath, dirnames, filenames in os.walk(src):
+                dirnames[:] = [d for d in dirnames
+                               if d not in ('__pycache__', '.git')]
+                rel_dir = os.path.relpath(dirpath, src)
+                out_dir = (dst if rel_dir == '.'
+                           else os.path.join(dst, rel_dir))
+                for fn in filenames:
+                    if not fn.endswith('.py'):
+                        continue
+                    os.makedirs(out_dir, exist_ok=True)
+                    shutil.copy2(os.path.join(dirpath, fn),
+                                 os.path.join(out_dir, fn))
         # 闸门还需要 pkg_paths（在仓库根）
         shutil.copy2(os.path.join(REPO, 'pkg_paths.py'),
                      os.path.join(tmp, 'pkg_paths.py'))
