@@ -71,12 +71,12 @@ def c_basic():
     """基本流程：段0 有完整句 + 段尾半句；段1 补全半句。"""
     svc, fake = new_svc()
     segs = [
-        (0, 'Good morning everyone. Let us start.'),
+        (0, '[会议句 idx 55]. Let us start.'),
         (0, 'So welcome'),                     # 段0 尾半句
         (1, 'to our Q3 meeting. Then we cover AI.'),   # 段1 补全 + 新句
     ]
     # 段0 一次定稿（含半句）
-    svc.submit('Good morning everyone. Let us start. So welcome', seg=0)
+    svc.submit('[会议句 idx 55]. Let us start. So welcome', seg=0)
     out0 = drain(svc)
     print('  段0 定稿后 outbox:', [(k, t) for k, _, t in out0])
     print('  段0 seg_keys:', svc.seg_keys.get(0))

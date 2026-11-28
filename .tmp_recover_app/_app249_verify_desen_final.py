@@ -115,7 +115,7 @@ def main():
             for i, (x, y) in enumerate(zip(bl, al)):
                 if x == y:
                     continue
-            # 🔴 **词级**对齐（不是字符级）：字符级 diff 会把「Good morning」里的
+            # 🔴 **词级**对齐（不是字符级）：字符级 diff 会把「[会议句 idx 54]」里的
             #    `x` 单独对齐到别处 ⇒ 报「插入了非占位的 x」⇒ **假 FAIL**。
             #    ⇒ 先把占位当成**原子 token**切出来，再按词切分对齐。
             def _tok(s):

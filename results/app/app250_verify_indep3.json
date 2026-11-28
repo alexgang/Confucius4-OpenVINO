@@ -1,0 +1,516 @@
+{
+ "script": "app250_verify_indep3.py",
+ "note": "独立复核 v3（最终版）：修正 v1/v2 的 5 处判据缺陷；从零重算，不复用死会话产物",
+ "n_baseline_sents": 73,
+ "n_tracked": 2892,
+ "sec1_residual": {
+  "criterion": "reviewer 权威基线句 × 全部 tracked 文件（子串粒度）；GT 源文件按定义含原句⇒单独统计",
+  "n_scanned": 2786,
+  "n_gt_source_files": 39,
+  "n_gt_source_still_with_sents": 25,
+  "gt_source_detail": {
+   "results/app/app415_rc6_langs/en/subtitles.mt.txt": 5,
+   "results/app/app042_soak_run4/app042_soak.wav.tts.jsonl": 1,
+   "results/app/app415_rc6_langs/fr/subtitles.mt.txt": 5,
+   "results/app/app415_rc6_langs/ru/subtitles.mt.txt": 5,
+   "results/app/_app591_sp5_en_run20261117-101859_tts_out.wav.tts.jsonl": 23,
+   "results/app/app415_rc6_langs/es/subtitles.mt.txt": 5,
+   "results/app/app458_app100_device/gpu_same_asr_mt.mt.txt": 1,
+   "results/app/app461_app100_device/gpu_same_asr_mt.wav.tts.jsonl": 1,
+   "results/app/app415_rc6_langs/it/subtitles.mt.txt": 5,
+   "results/app/app042_soak_run2/app042_soak.wav.tts.jsonl": 1,
+   "results/app/app294_rc4_npu_out/npu/transcript.mt.txt": 1,
+   "results/app/app415_rc6_langs/de/subtitles.mt.txt": 5,
+   "results/app/app501_app105_rc10_acceptance/chain10min.mt.txt": 1,
+   "results/app/app312_rc5_out/gpu/transcript.mt.txt": 1,
+   "results/app/_app591_app119_default_run20261121-032253_tts_out.wav.tts.jsonl": 1,
+   "results/app/app294_rc4_npu_out/igpu/transcript.mt.txt": 2,
+   "results/app/app415_rc6_langs/ja/subtitles.mt.txt": 3,
+   "results/app/_app591_sp5_en_run20261117-095732_tts_out.wav.tts.jsonl": 23,
+   "results/app/app294_rc4_npu_out/npu_full/transcript.mt.txt": 1,
+   "results/app/app415_rc6_langs/ko/subtitles.mt.txt": 5,
+   "results/app/app461_app100_device/gpu_same_asr_mt.mt.txt": 1,
+   "results/app/app042_soak_run4/app042_subtitles.mt.txt": 1,
+   "results/app/app415_rc6_langs/pt/subtitles.mt.txt": 5,
+   "results/app/app337_v23_cli_rerun_final.mt.txt": 1,
+   "results/app/app415_rc6_langs/zh/subtitles.mt.txt": 5
+  },
+  "n_residual_all": 1,
+  "n_residual_wo_exempt": 0,
+  "files_wo_exempt": {},
+  "residual_in_exempt": {
+   "results/app/app053_draft_prefix_boundary_probe.py": [
+    {
+     "line": 460,
+     "len": 15,
+     "sha8": "9726b63b"
+    },
+    {
+     "line": 470,
+     "len": 15,
+     "sha8": "9726b63b"
+    }
+   ]
+  },
+  "exempt": {
+   "results/app/app053_draft_prefix_boundary_probe.py": "断言比较操作数：`(finals[fi].get('src') or '') == <GT 句>`（GT 句 len=15 sha8=9726b63b）⇒ 换成占位符后恒不等 ⇒ ok_wrong 恒 False ⇒ 空洞恒真（假绿）⇒ 不改"
+  },
+  "pass": true
+ },
+ "sec2_diff": {
+  "per_file": {
+   ".tmp_recover_app/_app249_desen_analyze.py": {
+    "changed": true,
+    "n_minus": 1,
+    "n_plus": 1,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 49,
+      "sha8": "e3472f47",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 47,
+      "sha8": "3ecc3e6a",
+      "has_gt": false
+     }
+    ]
+   },
+   ".tmp_recover_app/_app249_desen_apply_full.py": {
+    "changed": true,
+    "n_minus": 2,
+    "n_plus": 2,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 56,
+      "sha8": "99113e56",
+      "has_gt": true
+     },
+     {
+      "len": 63,
+      "sha8": "562dec65",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 46,
+      "sha8": "2f4d762e",
+      "has_gt": false
+     },
+     {
+      "len": 54,
+      "sha8": "feaea71f",
+      "has_gt": false
+     }
+    ]
+   },
+   ".tmp_recover_app/_app249_desen_scan_full.py": {
+    "changed": true,
+    "n_minus": 2,
+    "n_plus": 2,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 54,
+      "sha8": "439c8a9b",
+      "has_gt": true
+     },
+     {
+      "len": 78,
+      "sha8": "97c521e5",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 46,
+      "sha8": "ded1cd18",
+      "has_gt": false
+     },
+     {
+      "len": 62,
+      "sha8": "c42cf0d3",
+      "has_gt": false
+     }
+    ]
+   },
+   ".tmp_recover_app/_app249_verify_desen_final.py": {
+    "changed": true,
+    "n_minus": 1,
+    "n_plus": 1,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 59,
+      "sha8": "9807b0a7",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 59,
+      "sha8": "158f14e2",
+      "has_gt": false
+     }
+    ]
+   },
+   "live_caption/_app121_sec221_body.py": {
+    "changed": true,
+    "n_minus": 3,
+    "n_plus": 3,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 55,
+      "sha8": "f08c9c6d",
+      "has_gt": true
+     },
+     {
+      "len": 50,
+      "sha8": "3ce60dbd",
+      "has_gt": true
+     },
+     {
+      "len": 67,
+      "sha8": "ee2a0bd8",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 45,
+      "sha8": "3867ee47",
+      "has_gt": false
+     },
+     {
+      "len": 39,
+      "sha8": "79024977",
+      "has_gt": false
+     },
+     {
+      "len": 59,
+      "sha8": "c7d3bd96",
+      "has_gt": false
+     }
+    ]
+   },
+   "live_caption/diag_c111_half.py": {
+    "changed": true,
+    "n_minus": 2,
+    "n_plus": 2,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 52,
+      "sha8": "b9b7c255",
+      "has_gt": true
+     },
+     {
+      "len": 72,
+      "sha8": "bb436a3a",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 43,
+      "sha8": "c1483a1d",
+      "has_gt": false
+     },
+     {
+      "len": 63,
+      "sha8": "58b40688",
+      "has_gt": false
+     }
+    ]
+   },
+   "results/app/_app330_write_status167.py": {
+    "changed": true,
+    "n_minus": 1,
+    "n_plus": 1,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 241,
+      "sha8": "4e41accd",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 231,
+      "sha8": "e0d577f3",
+      "has_gt": false
+     }
+    ]
+   },
+   "results/app/app053_caption_render_segcap_candidate.py": {
+    "changed": true,
+    "n_minus": 1,
+    "n_plus": 1,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 77,
+      "sha8": "63ad4e18",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 74,
+      "sha8": "295bbb00",
+      "has_gt": false
+     }
+    ]
+   },
+   "results/app/app127_c111_real_timing_draft_lines.py": {
+    "changed": true,
+    "n_minus": 1,
+    "n_plus": 1,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 77,
+      "sha8": "5eaac959",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 68,
+      "sha8": "502c6e60",
+      "has_gt": false
+     }
+    ]
+   },
+   "results/app/test_app015_caption_render.py": {
+    "changed": true,
+    "n_minus": 1,
+    "n_plus": 1,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 56,
+      "sha8": "0fb2e423",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 47,
+      "sha8": "1d53ac8e",
+      "has_gt": false
+     }
+    ]
+   },
+   "status/STATUS.md.c027bak": {
+    "changed": true,
+    "n_minus": 1,
+    "n_plus": 1,
+    "minus_all_have_gt": true,
+    "plus_no_gt": true,
+    "minus": [
+     {
+      "len": 86,
+      "sha8": "b9c54752",
+      "has_gt": true
+     }
+    ],
+    "plus": [
+     {
+      "len": 86,
+      "sha8": "9910870e",
+      "has_gt": false
+     }
+    ]
+   }
+  },
+  "n_pass": 11,
+  "n_total": 11,
+  "pass": true
+ },
+ "sec3_syntax": {
+  "per_file": {
+   ".tmp_recover_app/_app249_desen_analyze.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   ".tmp_recover_app/_app249_desen_apply_full.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   ".tmp_recover_app/_app249_desen_scan_full.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   ".tmp_recover_app/_app249_verify_desen_final.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   "live_caption/_app121_sec221_body.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   "live_caption/diag_c111_half.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   "results/app/_app330_write_status167.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   "results/app/app053_caption_render_segcap_candidate.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   "results/app/app127_c111_real_timing_draft_lines.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   "results/app/test_app015_caption_render.py": {
+    "ok": true,
+    "kind": "py"
+   },
+   "status/STATUS.md.c027bak": {
+    "ok": true,
+    "kind": "other"
+   }
+  },
+  "n_pass": 11,
+  "n_total": 11,
+  "pass": true
+ },
+ "sec4_behavior": {
+  "criterion": "① rc 相同 ② stdout/stderr 占位符还原后逐字节相等 ③ evidence 的断言判定（ok 标志/verdict/计数）全同 ④ 残余数字差恰等于替换引入的字符数差 ⑤ 崩溃须 before/after 完全一致（既有缺陷如实登记）",
+  "rows": [
+   {
+    "script": "results/app/app053_draft_prefix_boundary_probe.py",
+    "interp": "py",
+    "have_backup": false,
+    "n_restore_map": 0,
+    "ok": true,
+    "rc_before": null,
+    "rc_after": 0,
+    "note": "文件未被改动（§3 豁免）⇒ 行为必然等价"
+   },
+   {
+    "script": "results/app/test_app015_caption_render.py",
+    "interp": "py",
+    "have_backup": true,
+    "n_restore_map": 1,
+    "rc_before": 0,
+    "rc_after": 0,
+    "rc_same": true,
+    "crashed_before": false,
+    "crashed_after": false,
+    "crash_last_line_same": true,
+    "stdout_equal_raw": true,
+    "stdout_equal_restored": true,
+    "stderr_equal_restored": true,
+    "evidence_verdicts_same": true,
+    "n_assertions": 28,
+    "n_ok_true_before": 28,
+    "n_ok_true_after": 28,
+    "evidence_numeric_deltas": [
+     {
+      "pos": 26,
+      "before": 204,
+      "after": 195,
+      "delta": -9
+     },
+     {
+      "pos": 27,
+      "before": 204,
+      "after": 195,
+      "delta": -9
+     },
+     {
+      "pos": 36,
+      "before": 204,
+      "after": 195,
+      "delta": -9
+     },
+     {
+      "pos": 40,
+      "before": 175,
+      "after": 166,
+      "delta": -9
+     },
+     {
+      "pos": 41,
+      "before": 204,
+      "after": 195,
+      "delta": -9
+     }
+    ],
+    "expected_char_shrink": 9,
+    "numeric_deltas_explainable": true,
+    "ok": true
+   },
+   {
+    "script": "results/app/app127_c111_real_timing_draft_lines.py",
+    "interp": "venv",
+    "have_backup": true,
+    "n_restore_map": 1,
+    "rc_before": 1,
+    "rc_after": 1,
+    "rc_same": true,
+    "crashed_before": false,
+    "crashed_after": false,
+    "crash_last_line_same": true,
+    "stdout_equal_raw": true,
+    "stdout_equal_restored": true,
+    "stderr_equal_restored": true,
+    "evidence_verdicts_same": true,
+    "n_assertions": 17,
+    "n_ok_true_before": 12,
+    "n_ok_true_after": 12,
+    "evidence_numeric_deltas": [],
+    "expected_char_shrink": 9,
+    "numeric_deltas_explainable": true,
+    "ok": true
+   },
+   {
+    "script": "live_caption/diag_c111_half.py",
+    "interp": "venv",
+    "have_backup": true,
+    "n_restore_map": 1,
+    "rc_before": 1,
+    "rc_after": 1,
+    "rc_same": true,
+    "crashed_before": true,
+    "crashed_after": true,
+    "crash_last_line_same": true,
+    "crash_pre_existing": true,
+    "stdout_equal_raw": false,
+    "stdout_equal_restored": true,
+    "stderr_equal_restored": true,
+    "evidence_verdicts_same": true,
+    "evidence_numeric_deltas": [],
+    "expected_char_shrink": 9,
+    "numeric_deltas_explainable": true,
+    "ok": true
+   }
+  ],
+  "n_pass": 4,
+  "n_total": 4,
+  "pass": true
+ },
+ "all_pass": true
+}

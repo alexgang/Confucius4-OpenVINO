@@ -1,0 +1,49 @@
+{
+ "script": "_app250_snapshot.py",
+ "rows": {
+  ".tmp_recover_app/_app249_desen_analyze.py": {
+   "sha256": "594039aebc245f806256968ab6c47e89dda82b1d35ff547add8822ebd6b828da",
+   "bytes": 6904
+  },
+  ".tmp_recover_app/_app249_desen_apply_full.py": {
+   "sha256": "9a7158a97fa0f4c3d29544b096ab342d1491a8b08f3f9f6987f768b1d542615e",
+   "bytes": 11631
+  },
+  ".tmp_recover_app/_app249_desen_scan_full.py": {
+   "sha256": "61593156e8b33bc230ad674b70868614ccc21a08642322d4b5ff11559de4e79f",
+   "bytes": 6054
+  },
+  ".tmp_recover_app/_app249_verify_desen_final.py": {
+   "sha256": "c5ff338f4b326a528c4b29a6007f8ffa023760091b15e6c09967db7b96991e3e",
+   "bytes": 11685
+  },
+  "live_caption/_app121_sec221_body.py": {
+   "sha256": "3762520a025543e32828056fd0ef61189ebe90057f1f1a29aa2f157057d7532e",
+   "bytes": 36637
+  },
+  "live_caption/diag_c111_half.py": {
+   "sha256": "7691b909ee0e224f634d99497d62e987d685486d55199bc997c149eaa52d54de",
+   "bytes": 10664
+  },
+  "results/app/_app330_write_status167.py": {
+   "sha256": "f635eb7084bdc532a8ba0fca7d0c81731b45f1bcf444479f16db07b55f899d4e",
+   "bytes": 20993
+  },
+  "results/app/app053_caption_render_segcap_candidate.py": {
+   "sha256": "c0e017ff709de723ea620865daf0bc13d216ce522f2880b70b7586f5f7af1222",
+   "bytes": 23097
+  },
+  "results/app/app127_c111_real_timing_draft_lines.py": {
+   "sha256": "eefee6de6687ad6930c3a6e05278a9467b460009973225ca61d9074f041cf8aa",
+   "bytes": 37938
+  },
+  "results/app/test_app015_caption_render.py": {
+   "sha256": "58cd8552b203a021e0dbc970b854bfa4e724695e0eb3ff82c56d40ddb6f20cb5",
+   "bytes": 17683
+  },
+  "status/STATUS.md.c027bak": {
+   "sha256": "7a326376cf0ecbf443eb82d76f4a3e6d91c8759b97a4af6eb5ea2e98d16b2818",
+   "bytes": 18597
+  }
+ }
+}

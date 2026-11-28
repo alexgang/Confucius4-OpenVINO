@@ -12,8 +12,8 @@ r"""_app249_desen_apply_full.py —— APP-155 脱敏的**完整补做**（索�
 
 ## 判据（**归一化 + 索引映射** ⇒ 既完整又精确）
 
-只用 **raw form 原文**匹配会漏掉标点变体（GT `Good morning, everyone.`
-vs README `Good morning everyone`）；只用**归一化串**匹配又会把命中 span 弄丢位置。
+只用 **raw form 原文**匹配会漏掉标点变体（GT `[会议句 idx 55].`
+vs README `[会议句 idx 55]`）；只用**归一化串**匹配又会把命中 span 弄丢位置。
 
 ⇒ 本脚本对**每一行**：
 1. 逐字符做 `norm()`（小写／合并空白／去标点），**同时记录每个归一化字符对应的原文下标**；

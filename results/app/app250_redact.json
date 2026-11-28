@@ -1,0 +1,363 @@
+{
+ "script": "_app250_redact.py",
+ "method": "全范围扫描 + §249 apply 同口径（逐行 norm_with_map + taken[] 标记） ⇒ 精确替换命中 span；占位符 [会议句 idx N] 沿用 §249 编号",
+ "n_gt": 571,
+ "n_changed_files": 11,
+ "n_replacements": 19,
+ "changed": [
+  {
+   "file": ".tmp_recover_app/_app249_desen_analyze.py",
+   "decision": "doc",
+   "reason": "docstring：§249 方法说明里列举「会误伤」的通用短语示例；纯文档 ⇒ 可改",
+   "n_repl": 2,
+   "applied": [
+    {
+     "line": 18,
+     "len": 14,
+     "sha8": "fd8e8b5c",
+     "idx": 96
+    },
+    {
+     "line": 18,
+     "len": 12,
+     "sha8": "cdf71dea",
+     "idx": 54
+    }
+   ],
+   "bytes_before": 6894,
+   "bytes_after": 6904,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\.tmp_recover_app\\_app249_desen_analyze.py"
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+   "decision": "doc",
+   "reason": "docstring：说明「raw form 会漏掉标点变体」的示例；纯文档 ⇒ 可改",
+   "n_repl": 2,
+   "applied": [
+    {
+     "line": 15,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    },
+    {
+     "line": 16,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    }
+   ],
+   "bytes_before": 11638,
+   "bytes_after": 11631,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\.tmp_recover_app\\_app249_desen_apply_full.py"
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+   "decision": "doc",
+   "reason": "docstring：说明「嵌在更大句子里」的示例；纯文档 ⇒ 可改",
+   "n_repl": 3,
+   "applied": [
+    {
+     "line": 12,
+     "len": 19,
+     "sha8": "5e708d46",
+     "idx": 6
+    },
+    {
+     "line": 13,
+     "len": 19,
+     "sha8": "5e708d46",
+     "idx": 6
+    },
+    {
+     "line": 13,
+     "len": 19,
+     "sha8": "5e708d46",
+     "idx": 6
+    }
+   ],
+   "bytes_before": 6060,
+   "bytes_after": 6054,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\.tmp_recover_app\\_app249_desen_scan_full.py"
+  },
+  {
+   "file": ".tmp_recover_app/_app249_verify_desen_final.py",
+   "decision": "doc",
+   "reason": "comment：说明「词级对齐」的示例；纯文档 ⇒ 可改",
+   "n_repl": 1,
+   "applied": [
+    {
+     "line": 118,
+     "len": 12,
+     "sha8": "cdf71dea",
+     "idx": 54
+    }
+   ],
+   "bytes_before": 11679,
+   "bytes_after": 11685,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\.tmp_recover_app\\_app249_verify_desen_final.py"
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "decision": "gen",
+   "reason": "§221 companion 生成器：产物 status/app/STATUS_APP_sec221_detail_20261123.md 已被 §249 脱敏，生成器未脱敏 ⇒ 重跑会回灌原句 ⇒ 一并脱敏",
+   "n_repl": 3,
+   "applied": [
+    {
+     "line": 340,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    },
+    {
+     "line": 341,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    },
+    {
+     "line": 342,
+     "len": 19,
+     "sha8": "5e708d46",
+     "idx": 6
+    }
+   ],
+   "bytes_before": 36648,
+   "bytes_after": 36637,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\live_caption\\_app121_sec221_body.py"
+  },
+  {
+   "file": "live_caption/diag_c111_half.py",
+   "decision": "prod",
+   "reason": "诊断脚本的**输入语料**（segs[0] / svc.submit(...)）⇒ 一并脱敏",
+   "n_repl": 2,
+   "applied": [
+    {
+     "line": 74,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    },
+    {
+     "line": 79,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    }
+   ],
+   "bytes_before": 10670,
+   "bytes_after": 10664,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\live_caption\\diag_c111_half.py"
+  },
+  {
+   "file": "results/app/_app330_write_status167.py",
+   "decision": "gen",
+   "reason": "§167 正文生成器：产物 status/archive/STATUS_APP_sec167_20261110.md 已被 §249 脱敏，生成器未脱敏 ⇒ 重跑会回灌原句 ⇒ 一并脱敏",
+   "n_repl": 1,
+   "applied": [
+    {
+     "line": 255,
+     "len": 22,
+     "sha8": "9e9eab7d",
+     "idx": 215
+    }
+   ],
+   "bytes_before": 21043,
+   "bytes_after": 20993,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\results\\app\\_app330_write_status167.py"
+  },
+  {
+   "file": "results/app/app053_caption_render_segcap_candidate.py",
+   "decision": "doc",
+   "reason": "comment：跨段配对的举例说明；纯文档 ⇒ 可改",
+   "n_repl": 1,
+   "applied": [
+    {
+     "line": 218,
+     "len": 15,
+     "sha8": "9726b63b",
+     "idx": 111
+    }
+   ],
+   "bytes_before": 23094,
+   "bytes_after": 23097,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\results\\app\\app053_caption_render_segcap_candidate.py"
+  },
+  {
+   "file": "results/app/app127_c111_real_timing_draft_lines.py",
+   "decision": "prod",
+   "reason": "证据生成器：产物 results/app/app127_c111_real_timing_draft_lines_evidence.json 已被 §249 脱敏（corpora.chain_close[0] = '[会议句 idx 55] and welcome...'），而本文件的 CORPORA 仍是原句 ⇒ 重跑会把原句**写回**已脱敏的证据 ⇒ 回灌 ⇒ 一并脱敏",
+   "n_repl": 1,
+   "applied": [
+    {
+     "line": 140,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    }
+   ],
+   "bytes_before": 37941,
+   "bytes_after": 37938,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\results\\app\\app127_c111_real_timing_draft_lines.py"
+  },
+  {
+   "file": "results/app/test_app015_caption_render.py",
+   "decision": "prod",
+   "reason": "证据生成器：BLOCKS[0] 是被测语料；其证据 app015_caption_render_evidence.json 不含该语料 ⇒ 产物无原句，但本文件仍带原句 ⇒ 一并脱敏",
+   "n_repl": 1,
+   "applied": [
+    {
+     "line": 64,
+     "len": 21,
+     "sha8": "301202c0",
+     "idx": 55
+    }
+   ],
+   "bytes_before": 17686,
+   "bytes_after": 17683,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "py_still_parses": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\results\\app\\test_app015_caption_render.py"
+  },
+  {
+   "file": "status/STATUS.md.c027bak",
+   "decision": "doc",
+   "reason": "纯文档备份文件（tracked ⇒ 会随仓库推 GitHub）⇒ 可改",
+   "n_repl": 2,
+   "applied": [
+    {
+     "line": 198,
+     "len": 12,
+     "sha8": "cdf71dea",
+     "idx": 54
+    },
+    {
+     "line": 198,
+     "len": 12,
+     "sha8": "cdf71dea",
+     "idx": 54
+    }
+   ],
+   "bytes_before": 18585,
+   "bytes_after": 18597,
+   "checks": {
+    "eol_style_same": true,
+    "no_mixed_eol": true,
+    "line_count_same": true,
+    "non_replaced_bytes_identical": true,
+    "spans_are_gt_sentences": true,
+    "readback_identical": true
+   },
+   "backup": "C:\\Users\\Trekker-PTL\\shared\\app250_desen_backup\\status\\STATUS.md.c027bak"
+  }
+ ],
+ "deferred": [
+  {
+   "file": "results/app/app053_draft_prefix_boundary_probe.py",
+   "action": "keep",
+   "decision": "func",
+   "n_hits": 2,
+   "hits": [
+    {
+     "line": 460,
+     "len": 15,
+     "sha8": "9726b63b"
+    },
+    {
+     "line": 470,
+     "len": 15,
+     "sha8": "9726b63b"
+    }
+   ],
+   "reason": "断言比较操作数：`(finals[fi].get('src') or '') == <GT 句>`（GT 句 len=15 sha8=9726b63b） ⇒ 换成占位符后恒不等 ⇒ ok_wrong 恒 False ⇒ 「OKay 不再被错配」变成**空洞恒真**（假绿）⇒ 判据失去鉴别力 ⇒ 不改"
+  }
+ ]
+}

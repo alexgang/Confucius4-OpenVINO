@@ -61,7 +61,7 @@ def check(group, name, ok, detail=''):
 # 语料（模拟 MT 方案 C 的真实形态：草稿在段 5、正式稿在段 6）
 # ══════════════════════════════════════════════════════════════════════
 BLOCKS = [
-    'Good morning everyone and welcome to the session.',
+    '[会议句 idx 55] and welcome to the session.',
     'We started the new platform last quarter.',
     'The team has been working on the roadmap.',
     'Let me share some numbers with you.',

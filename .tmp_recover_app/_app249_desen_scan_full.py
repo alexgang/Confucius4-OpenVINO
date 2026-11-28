@@ -9,8 +9,8 @@ r"""_app249_desen_scan_full.py —— APP-155 脱敏的**完整扫描（子串�
 `app155_desens_verify.json` 的 `verdict` 当时就是 **FAIL**（§248 没写这一条）。
 
 🔴 为什么原来的穷尽重扫没抓到：**它按「整句」切**（`sentences()`），
-而漏掉的那些句是**嵌在更大的句子里**（例如 `So, the agenda topics today.`
-⇒ 切出来是 `So, the agenda topics today` ⇒ 归一化后**不等于** GT 里的 `agenda topics today`
+而漏掉的那些句是**嵌在更大的句子里**（例如 `So, the [会议句 idx 6].`
+⇒ 切出来是 `So, the [会议句 idx 6]` ⇒ 归一化后**不等于** GT 里的 `[会议句 idx 6]`
 ⇒ 判不出命中）⇒ **只查整句 ⇒ 漏**。
 
 ## 本脚本的判据（**子串粒度**）

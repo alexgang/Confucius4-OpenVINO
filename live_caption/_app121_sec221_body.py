@@ -337,9 +337,9 @@ def main():
       '段尾再把前缀原样喂一遍（`prefix` ＝ 已解出的文本）；'
       'ASR 模块的参照是 `raw + " " + final` 拼接 ⇒ '
       '**词边界处的空格与 token 切分不同**'
-      '（实测样例：App `All right. Good morning, everyone.` '
-      'vs 参照 `Alright. Good  morning, everyone.`；'
-      'App `Agenda topics today.` vs 参照 `Ag enda topics today.`）。')
+      '（实测样例：App `All right. [会议句 idx 55].` '
+      'vs 参照 `Alright. [会议句 idx 55].`；'
+      'App `[会议句 idx 6].` vs 参照 `Ag enda topics today.`）。')
     A('* **量化**：去掉全部空白后，spe 52/93 段、en 47/65 段、zh 51/66 段'
       '与参照**逐字相同**；全文去空白后 App **略长**（spe 8078 vs 8059 字符、'
       'en 4398 vs 4360、zh 1583 vs 1576）⇒ '

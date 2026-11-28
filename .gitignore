@@ -147,3 +147,9 @@ results/app/app461_app100_device/*.tts.jsonl
 _app*_commit_msg.txt
 _app*_msg.txt
 *.commit_msg.txt
+
+# 🔴 §250（2026-11-28）**基线快照目录**——里面存着**脱敏前**的源文件副本
+#   （与 HEAD 逐字节相同 ⇒ 含会议原句）⇒ 一律**不入库**。
+#   ⚠️ .gitignore 只挡新增、不动存量 ⇒ 若已入库须单独 `git rm --cached`。
+#   🔴 末尾的 `/` ⇒ **只匹配目录**（不误伤 `_app250_baseline.py` 这类脚本）。
+.tmp_recover_app/_app250_base/

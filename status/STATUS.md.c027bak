@@ -195,7 +195,7 @@ OV 听到了"a good question, but I think" 后，INT8 stateful decoder 在该 KV
   - "industri" (应该是 industrial)
   - "quantum" (应该 agentic，C-019 已记)
   - "pantricove" (Panther Cove)
-- 段首丢词：OV 第一段开头是 "good morning" 但 MM 是 "all right, good morning"（流式 unfixed 把段首 2 词丢了）
+- 段首丢词：OV 第一段开头是 "[会议句 idx 54]" 但 MM 是 "all right, [会议句 idx 54]"（流式 unfixed 把段首 2 词丢了）
 - 流式 unfixed_token_num=5 → 每个 chunk 末 5 token 可回滚 → 段边界附近丢词
 
 **Hybrid 9.07% vs 我 23.13% 的差距**：

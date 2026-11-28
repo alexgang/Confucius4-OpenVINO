@@ -1,0 +1,32 @@
+{
+ "script": "app250_anticontrol.py",
+ "note": "反证组：故意改坏被检部分，验证判据有鉴别力（去掉被检对象仍成立⇒不能进）",
+ "n_cases": 3,
+ "n_pass": 3,
+ "all_pass": true,
+ "rows": [
+  {
+   "id": "AC-1",
+   "target": "sec1_residual",
+   "expect": "FAIL（§1 必须命中注入进 tracked 文件的真原句）",
+   "observed": "HIT n=1",
+   "pass": true
+  },
+  {
+   "id": "AC-2",
+   "target": "sec2_diff",
+   "expect": "FAIL（minus 侧出现非 GT 行 ⇒ diff 法必须识破）",
+   "observed": "minus_all_have_gt=False plus_no_gt=True",
+   "pass": true
+  },
+  {
+   "id": "AC-3",
+   "target": "sec4_behavior",
+   "expect": "FAIL（断言判定被改坏 ⇒ 必须识破）",
+   "observed": "verdicts_same=False ok_true 28->27",
+   "pass": true
+  }
+ ],
+ "injected_len": 23,
+ "injected_sha8": "f3e2211d"
+}

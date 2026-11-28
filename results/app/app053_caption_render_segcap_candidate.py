@@ -215,7 +215,7 @@ def match_draft_to_final(drafts, finals):
         #   ⇒ rank1「方向性前缀」**成立** ⇒ **假前缀**产生。
         #   实测：95 对里 **1 对**是假前缀、**跨段 85 段**
         #   （`DRAFT::That` seg22 → seg107 `That's where we are today.`）；
-        #   另 1 对跨段 **33 段**（`DRAFT::Okay` seg6 → seg39 `Okay, next slide.`）。
+        #   另 1 对跨段 **33 段**（`DRAFT::Okay` seg6 → seg39 `[会议句 idx 111].`）。
         #   ⇒ 后果：正式稿的译文被**搬到几十段之外**的草稿行
         #   ⇒ 用户在**错误的段**看到译文 ⇒ 用户可见的错位。
         #

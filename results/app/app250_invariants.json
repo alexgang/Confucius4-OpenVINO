@@ -1,0 +1,295 @@
+{
+ "script": "_app250_chk_invariants3.py",
+ "note": "对照 §250 备份目录的逐文件不变量终检（哨兵 + difflib 字符级对齐还原）",
+ "n_files": 11,
+ "n_pass": 11,
+ "all_pass": true,
+ "rows": [
+  {
+   "file": ".tmp_recover_app/_app249_desen_analyze.py",
+   "bytes_before": 6894,
+   "bytes_after": 6904,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 178
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 178
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 178,
+   "lines_after": 178,
+   "line_count_same": true,
+   "n_applied": 2,
+   "n_placeholders_actual": 2,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 2,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+   "bytes_before": 11638,
+   "bytes_after": 11631,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 302
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 302
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 302,
+   "lines_after": 302,
+   "line_count_same": true,
+   "n_applied": 2,
+   "n_placeholders_actual": 2,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 2,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+   "bytes_before": 6060,
+   "bytes_after": 6054,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 158
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 158
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 158,
+   "lines_after": 158,
+   "line_count_same": true,
+   "n_applied": 3,
+   "n_placeholders_actual": 3,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 3,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_verify_desen_final.py",
+   "bytes_before": 11679,
+   "bytes_after": 11685,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 266
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 266
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 266,
+   "lines_after": 266,
+   "line_count_same": true,
+   "n_applied": 1,
+   "n_placeholders_actual": 1,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 1,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "bytes_before": 36648,
+   "bytes_after": 36637,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 663
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 663
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 663,
+   "lines_after": 663,
+   "line_count_same": true,
+   "n_applied": 3,
+   "n_placeholders_actual": 3,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 3,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": "live_caption/diag_c111_half.py",
+   "bytes_before": 10670,
+   "bytes_after": 10664,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 272
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 272
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 272,
+   "lines_after": 272,
+   "line_count_same": true,
+   "n_applied": 2,
+   "n_placeholders_actual": 2,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 2,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": "results/app/_app330_write_status167.py",
+   "bytes_before": 21043,
+   "bytes_after": 20993,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 305
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 305
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 305,
+   "lines_after": 305,
+   "line_count_same": true,
+   "n_applied": 1,
+   "n_placeholders_actual": 1,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 1,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": "results/app/app053_caption_render_segcap_candidate.py",
+   "bytes_before": 23094,
+   "bytes_after": 23097,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 453
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 453
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 454,
+   "lines_after": 454,
+   "line_count_same": true,
+   "n_applied": 1,
+   "n_placeholders_actual": 1,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 1,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": "results/app/app127_c111_real_timing_draft_lines.py",
+   "bytes_before": 37941,
+   "bytes_after": 37938,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 733
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 733
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 733,
+   "lines_after": 733,
+   "line_count_same": true,
+   "n_applied": 1,
+   "n_placeholders_actual": 1,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 1,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": "results/app/test_app015_caption_render.py",
+   "bytes_before": 17686,
+   "bytes_after": 17683,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 341
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 341
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 341,
+   "lines_after": 341,
+   "line_count_same": true,
+   "n_applied": 1,
+   "n_placeholders_actual": 1,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 1,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  },
+  {
+   "file": "status/STATUS.md.c027bak",
+   "bytes_before": 18585,
+   "bytes_after": 18597,
+   "eol_before": {
+    "crlf": 0,
+    "lf": 346
+   },
+   "eol_after": {
+    "crlf": 0,
+    "lf": 346
+   },
+   "eol_same": true,
+   "no_mixed_eol": true,
+   "lines_before": 346,
+   "lines_after": 346,
+   "line_count_same": true,
+   "n_applied": 2,
+   "n_placeholders_actual": 2,
+   "placeholder_count_match": true,
+   "n_lines_restore_failed": 0,
+   "n_sentinels_matched": 2,
+   "equal_segments_byte_identical": true,
+   "restored_equals_backup": true,
+   "ok": true
+  }
+ ]
+}

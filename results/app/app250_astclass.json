@@ -1,0 +1,269 @@
+{
+ "script": "_app250_astclass.py",
+ "rows": [
+  {
+   "file": ".tmp_recover_app/_app249_desen_analyze.py",
+   "line": 18,
+   "kind": "docstring",
+   "lit_lines": [
+    1,
+    23
+   ],
+   "n_lit": 1,
+   "gt_sha8": "fd8e8b5c",
+   "gt_len": 14,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    707
+   ]
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+   "line": 15,
+   "kind": "docstring",
+   "lit_lines": [
+    1,
+    33
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    954
+   ]
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+   "line": 16,
+   "kind": "docstring",
+   "lit_lines": [
+    1,
+    33
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    954
+   ]
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+   "line": 12,
+   "kind": "docstring",
+   "lit_lines": [
+    1,
+    23
+   ],
+   "n_lit": 1,
+   "gt_sha8": "5e708d46",
+   "gt_len": 19,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    701
+   ]
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+   "line": 13,
+   "kind": "docstring",
+   "lit_lines": [
+    1,
+    23
+   ],
+   "n_lit": 1,
+   "gt_sha8": "5e708d46",
+   "gt_len": 19,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    701
+   ]
+  },
+  {
+   "file": ".tmp_recover_app/_app249_verify_desen_final.py",
+   "line": 118,
+   "kind": "comment",
+   "lit_lines": null,
+   "n_lit": 0,
+   "gt_sha8": "cdf71dea",
+   "gt_len": 12,
+   "lit_exact_gt": false,
+   "lit_lens": []
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "line": 340,
+   "kind": "string-literal",
+   "lit_lines": [
+    336,
+    342
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    287
+   ]
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "line": 341,
+   "kind": "string-literal",
+   "lit_lines": [
+    336,
+    342
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    287
+   ]
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "line": 342,
+   "kind": "string-literal",
+   "lit_lines": [
+    336,
+    342
+   ],
+   "n_lit": 1,
+   "gt_sha8": "5e708d46",
+   "gt_len": 19,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    287
+   ]
+  },
+  {
+   "file": "live_caption/diag_c111_half.py",
+   "line": 74,
+   "kind": "string-literal",
+   "lit_lines": [
+    74,
+    74
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    36
+   ]
+  },
+  {
+   "file": "live_caption/diag_c111_half.py",
+   "line": 79,
+   "kind": "string-literal",
+   "lit_lines": [
+    79,
+    79
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    47
+   ]
+  },
+  {
+   "file": "results/app/_app330_write_status167.py",
+   "line": 255,
+   "kind": "string-literal",
+   "lit_lines": [
+    212,
+    301
+   ],
+   "n_lit": 1,
+   "gt_sha8": "9e9eab7d",
+   "gt_len": 22,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    8389
+   ]
+  },
+  {
+   "file": "results/app/app053_caption_render_segcap_candidate.py",
+   "line": 218,
+   "kind": "comment",
+   "lit_lines": null,
+   "n_lit": 0,
+   "gt_sha8": "9726b63b",
+   "gt_len": 15,
+   "lit_exact_gt": false,
+   "lit_lens": []
+  },
+  {
+   "file": "results/app/app053_draft_prefix_boundary_probe.py",
+   "line": 460,
+   "kind": "string-literal",
+   "lit_lines": [
+    460,
+    460
+   ],
+   "n_lit": 3,
+   "gt_sha8": "9726b63b",
+   "gt_len": 15,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    17,
+    0,
+    3
+   ]
+  },
+  {
+   "file": "results/app/app053_draft_prefix_boundary_probe.py",
+   "line": 470,
+   "kind": "string-literal",
+   "lit_lines": [
+    470,
+    470
+   ],
+   "n_lit": 1,
+   "gt_sha8": "9726b63b",
+   "gt_len": 15,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    31
+   ]
+  },
+  {
+   "file": "results/app/app127_c111_real_timing_draft_lines.py",
+   "line": 140,
+   "kind": "string-literal",
+   "lit_lines": [
+    140,
+    140
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    66
+   ]
+  },
+  {
+   "file": "results/app/test_app015_caption_render.py",
+   "line": 64,
+   "kind": "string-literal",
+   "lit_lines": [
+    64,
+    64
+   ],
+   "n_lit": 1,
+   "gt_sha8": "301202c0",
+   "gt_len": 21,
+   "lit_exact_gt": false,
+   "lit_lens": [
+    49
+   ]
+  }
+ ]
+}

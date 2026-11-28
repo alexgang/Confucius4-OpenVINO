@@ -1,0 +1,158 @@
+{
+ "n_gt": 571,
+ "n_tracked": 2892,
+ "n_files": 12,
+ "n_hits": 21,
+ "hits": {
+  ".tmp_recover_app/_app249_desen_analyze.py": [
+   {
+    "line": 18,
+    "len": 14,
+    "sha8": "fd8e8b5c",
+    "ext": ".py"
+   },
+   {
+    "line": 18,
+    "len": 12,
+    "sha8": "cdf71dea",
+    "ext": ".py"
+   }
+  ],
+  ".tmp_recover_app/_app249_desen_apply_full.py": [
+   {
+    "line": 15,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   },
+   {
+    "line": 16,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   }
+  ],
+  ".tmp_recover_app/_app249_desen_scan_full.py": [
+   {
+    "line": 12,
+    "len": 19,
+    "sha8": "5e708d46",
+    "ext": ".py"
+   },
+   {
+    "line": 13,
+    "len": 19,
+    "sha8": "5e708d46",
+    "ext": ".py"
+   },
+   {
+    "line": 13,
+    "len": 19,
+    "sha8": "5e708d46",
+    "ext": ".py"
+   }
+  ],
+  ".tmp_recover_app/_app249_verify_desen_final.py": [
+   {
+    "line": 118,
+    "len": 12,
+    "sha8": "cdf71dea",
+    "ext": ".py"
+   }
+  ],
+  "live_caption/_app121_sec221_body.py": [
+   {
+    "line": 340,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   },
+   {
+    "line": 341,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   },
+   {
+    "line": 342,
+    "len": 19,
+    "sha8": "5e708d46",
+    "ext": ".py"
+   }
+  ],
+  "live_caption/diag_c111_half.py": [
+   {
+    "line": 74,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   },
+   {
+    "line": 79,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   }
+  ],
+  "results/app/_app330_write_status167.py": [
+   {
+    "line": 255,
+    "len": 22,
+    "sha8": "9e9eab7d",
+    "ext": ".py"
+   }
+  ],
+  "results/app/app053_caption_render_segcap_candidate.py": [
+   {
+    "line": 218,
+    "len": 15,
+    "sha8": "9726b63b",
+    "ext": ".py"
+   }
+  ],
+  "results/app/app053_draft_prefix_boundary_probe.py": [
+   {
+    "line": 460,
+    "len": 15,
+    "sha8": "9726b63b",
+    "ext": ".py"
+   },
+   {
+    "line": 470,
+    "len": 15,
+    "sha8": "9726b63b",
+    "ext": ".py"
+   }
+  ],
+  "results/app/app127_c111_real_timing_draft_lines.py": [
+   {
+    "line": 140,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   }
+  ],
+  "results/app/test_app015_caption_render.py": [
+   {
+    "line": 64,
+    "len": 21,
+    "sha8": "301202c0",
+    "ext": ".py"
+   }
+  ],
+  "status/STATUS.md.c027bak": [
+   {
+    "line": 198,
+    "len": 12,
+    "sha8": "cdf71dea",
+    "ext": ".c027bak"
+   },
+   {
+    "line": 198,
+    "len": 12,
+    "sha8": "cdf71dea",
+    "ext": ".c027bak"
+   }
+  ]
+ }
+}

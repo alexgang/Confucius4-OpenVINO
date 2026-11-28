@@ -1,0 +1,212 @@
+[
+ {
+  "file": ".tmp_recover_app/_app249_desen_analyze.py",
+  "line": 18,
+  "a": 6,
+  "b": 20,
+  "len": 14,
+  "sha8": "fd8e8b5c",
+  "idx": 96,
+  "ctx": "docstring"
+ },
+ {
+  "file": ".tmp_recover_app/_app249_desen_analyze.py",
+  "line": 18,
+  "a": 25,
+  "b": 37,
+  "len": 12,
+  "sha8": "cdf71dea",
+  "idx": 54,
+  "ctx": "docstring"
+ },
+ {
+  "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+  "line": 15,
+  "a": 32,
+  "b": 54,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "docstring"
+ },
+ {
+  "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+  "line": 16,
+  "a": 11,
+  "b": 32,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "docstring"
+ },
+ {
+  "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+  "line": 12,
+  "a": 33,
+  "b": 52,
+  "len": 19,
+  "sha8": "5e708d46",
+  "idx": 6,
+  "ctx": "docstring"
+ },
+ {
+  "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+  "line": 13,
+  "a": 16,
+  "b": 35,
+  "len": 19,
+  "sha8": "5e708d46",
+  "idx": 6,
+  "ctx": "docstring"
+ },
+ {
+  "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+  "line": 13,
+  "a": 58,
+  "b": 77,
+  "len": 19,
+  "sha8": "5e708d46",
+  "idx": 6,
+  "ctx": "docstring"
+ },
+ {
+  "file": ".tmp_recover_app/_app249_verify_desen_final.py",
+  "line": 118,
+  "a": 44,
+  "b": 56,
+  "len": 12,
+  "sha8": "cdf71dea",
+  "idx": 54,
+  "ctx": "comment"
+ },
+ {
+  "file": "live_caption/_app121_sec221_body.py",
+  "line": 340,
+  "a": 29,
+  "b": 51,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "live_caption/_app121_sec221_body.py",
+  "line": 341,
+  "a": 23,
+  "b": 46,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "live_caption/_app121_sec221_body.py",
+  "line": 342,
+  "a": 12,
+  "b": 31,
+  "len": 19,
+  "sha8": "5e708d46",
+  "idx": 6,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "live_caption/diag_c111_half.py",
+  "line": 74,
+  "a": 13,
+  "b": 34,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "live_caption/diag_c111_half.py",
+  "line": 79,
+  "a": 16,
+  "b": 37,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "results/app/_app330_write_status167.py",
+  "line": 255,
+  "a": 52,
+  "b": 75,
+  "len": 22,
+  "sha8": "9e9eab7d",
+  "idx": 215,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "results/app/app053_caption_render_segcap_candidate.py",
+  "line": 218,
+  "a": 57,
+  "b": 73,
+  "len": 15,
+  "sha8": "9726b63b",
+  "idx": 111,
+  "ctx": "comment"
+ },
+ {
+  "file": "results/app/app053_draft_prefix_boundary_probe.py",
+  "line": 460,
+  "a": 57,
+  "b": 73,
+  "len": 15,
+  "sha8": "9726b63b",
+  "idx": 111,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "results/app/app053_draft_prefix_boundary_probe.py",
+  "line": 470,
+  "a": 24,
+  "b": 40,
+  "len": 15,
+  "sha8": "9726b63b",
+  "idx": 111,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "results/app/app127_c111_real_timing_draft_lines.py",
+  "line": 140,
+  "a": 9,
+  "b": 30,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "results/app/test_app015_caption_render.py",
+  "line": 64,
+  "a": 5,
+  "b": 26,
+  "len": 21,
+  "sha8": "301202c0",
+  "idx": 55,
+  "ctx": "string-literal"
+ },
+ {
+  "file": "status/STATUS.md.c027bak",
+  "line": 198,
+  "a": 18,
+  "b": 30,
+  "len": 12,
+  "sha8": "cdf71dea",
+  "idx": 54,
+  "ctx": "doc"
+ },
+ {
+  "file": "status/STATUS.md.c027bak",
+  "line": 198,
+  "a": 51,
+  "b": 63,
+  "len": 12,
+  "sha8": "cdf71dea",
+  "idx": 54,
+  "ctx": "doc"
+ }
+]

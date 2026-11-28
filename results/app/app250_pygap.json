@@ -1,0 +1,194 @@
+{
+ "script": "_app250_pygap.py",
+ "n_files_all_ext": 12,
+ "n_files_in_249_scope": 0,
+ "n_files_outside_249_scope": 12,
+ "hits": {
+  ".tmp_recover_app/_app249_desen_analyze.py": [
+   {
+    "line": 18,
+    "n_gt": 2,
+    "gt_len": 14,
+    "gt_sha8": "fd8e8b5c",
+    "ctx": "docstring-inner",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  ".tmp_recover_app/_app249_desen_apply_full.py": [
+   {
+    "line": 15,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "docstring-inner",
+    "ext": ".py",
+    "in_249_scope": false
+   },
+   {
+    "line": 16,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "docstring-inner",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  ".tmp_recover_app/_app249_desen_scan_full.py": [
+   {
+    "line": 12,
+    "n_gt": 1,
+    "gt_len": 19,
+    "gt_sha8": "5e708d46",
+    "ctx": "docstring-inner",
+    "ext": ".py",
+    "in_249_scope": false
+   },
+   {
+    "line": 13,
+    "n_gt": 1,
+    "gt_len": 19,
+    "gt_sha8": "5e708d46",
+    "ctx": "docstring-inner",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  ".tmp_recover_app/_app249_verify_desen_final.py": [
+   {
+    "line": 118,
+    "n_gt": 1,
+    "gt_len": 12,
+    "gt_sha8": "cdf71dea",
+    "ctx": "comment",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "live_caption/_app121_sec221_body.py": [
+   {
+    "line": 340,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "assert-compare",
+    "ext": ".py",
+    "in_249_scope": false
+   },
+   {
+    "line": 341,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "assert-compare",
+    "ext": ".py",
+    "in_249_scope": false
+   },
+   {
+    "line": 342,
+    "n_gt": 1,
+    "gt_len": 19,
+    "gt_sha8": "5e708d46",
+    "ctx": "assert-compare",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "live_caption/diag_c111_half.py": [
+   {
+    "line": 74,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "code/other",
+    "ext": ".py",
+    "in_249_scope": false
+   },
+   {
+    "line": 79,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "code/other",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "results/app/_app330_write_status167.py": [
+   {
+    "line": 255,
+    "n_gt": 1,
+    "gt_len": 22,
+    "gt_sha8": "9e9eab7d",
+    "ctx": "docstring-inner",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "results/app/app053_caption_render_segcap_candidate.py": [
+   {
+    "line": 218,
+    "n_gt": 1,
+    "gt_len": 15,
+    "gt_sha8": "9726b63b",
+    "ctx": "comment",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "results/app/app053_draft_prefix_boundary_probe.py": [
+   {
+    "line": 460,
+    "n_gt": 1,
+    "gt_len": 15,
+    "gt_sha8": "9726b63b",
+    "ctx": "string-literal",
+    "ext": ".py",
+    "in_249_scope": false
+   },
+   {
+    "line": 470,
+    "n_gt": 1,
+    "gt_len": 15,
+    "gt_sha8": "9726b63b",
+    "ctx": "string-literal",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "results/app/app127_c111_real_timing_draft_lines.py": [
+   {
+    "line": 140,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "assert-compare",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "results/app/test_app015_caption_render.py": [
+   {
+    "line": 64,
+    "n_gt": 2,
+    "gt_len": 21,
+    "gt_sha8": "301202c0",
+    "ctx": "assert-compare",
+    "ext": ".py",
+    "in_249_scope": false
+   }
+  ],
+  "status/STATUS.md.c027bak": [
+   {
+    "line": 198,
+    "n_gt": 1,
+    "gt_len": 12,
+    "gt_sha8": "cdf71dea",
+    "ctx": "code/other",
+    "ext": ".c027bak",
+    "in_249_scope": false
+   }
+  ]
+ }
+}

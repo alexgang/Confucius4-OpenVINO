@@ -1,0 +1,205 @@
+{
+ "script": "_app250_decide.py",
+ "n_base_texts": 85,
+ "n_base_lines": 500,
+ "rows": [
+  {
+   "file": ".tmp_recover_app/_app249_desen_analyze.py",
+   "line": 18,
+   "ctx": "docstring-inner",
+   "gt_len": 14,
+   "gt_sha8": "fd8e8b5c",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+   "line": 15,
+   "ctx": "docstring-inner",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_apply_full.py",
+   "line": 16,
+   "ctx": "docstring-inner",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+   "line": 12,
+   "ctx": "docstring-inner",
+   "gt_len": 19,
+   "gt_sha8": "5e708d46",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_desen_scan_full.py",
+   "line": 13,
+   "ctx": "docstring-inner",
+   "gt_len": 19,
+   "gt_sha8": "5e708d46",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": ".tmp_recover_app/_app249_verify_desen_final.py",
+   "line": 118,
+   "ctx": "comment",
+   "gt_len": 12,
+   "gt_sha8": "cdf71dea",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "line": 340,
+   "ctx": "assert-compare",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "line": 341,
+   "ctx": "assert-compare",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "live_caption/_app121_sec221_body.py",
+   "line": 342,
+   "ctx": "assert-compare",
+   "gt_len": 19,
+   "gt_sha8": "5e708d46",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "live_caption/diag_c111_half.py",
+   "line": 74,
+   "ctx": "code/other",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "live_caption/diag_c111_half.py",
+   "line": 79,
+   "ctx": "code/other",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "results/app/_app330_write_status167.py",
+   "line": 255,
+   "ctx": "docstring-inner",
+   "gt_len": 22,
+   "gt_sha8": "9e9eab7d",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "results/app/app053_caption_render_segcap_candidate.py",
+   "line": 218,
+   "ctx": "comment",
+   "gt_len": 15,
+   "gt_sha8": "9726b63b",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "results/app/app053_draft_prefix_boundary_probe.py",
+   "line": 460,
+   "ctx": "string-literal",
+   "gt_len": 15,
+   "gt_sha8": "9726b63b",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "results/app/app053_draft_prefix_boundary_probe.py",
+   "line": 470,
+   "ctx": "string-literal",
+   "gt_len": 15,
+   "gt_sha8": "9726b63b",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "results/app/app127_c111_real_timing_draft_lines.py",
+   "line": 140,
+   "ctx": "assert-compare",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "results/app/test_app015_caption_render.py",
+   "line": 64,
+   "ctx": "assert-compare",
+   "gt_len": 21,
+   "gt_sha8": "301202c0",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  },
+  {
+   "file": "status/STATUS.md.c027bak",
+   "line": 198,
+   "ctx": "code/other",
+   "gt_len": 12,
+   "gt_sha8": "cdf71dea",
+   "in_base_text": true,
+   "in_base_line": false,
+   "cls": "R2_必须脱敏",
+   "short": true
+  }
+ ]
+}

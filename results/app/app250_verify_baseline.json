@@ -1,0 +1,680 @@
+{
+ "script": "_app250_verify_baseline.py",
+ "method": "A reviewer 权威基线逐条核销 + B 基线短语全库子串扫描 + C 交叉核对",
+ "n_base_files": 76,
+ "n_base_phrases": 81,
+ "n_tracked": 2892,
+ "A": {
+  "n_files_residual": 0,
+  "n_still": 0,
+  "n_base": 500,
+  "per_file": {
+   "results/app/_app551_A_mt_npu_tts_off_out.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 19,
+    "still": []
+   },
+   "results/app/_app551_B_mt_gpu0_tts_cuda_out.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 19,
+    "still": []
+   },
+   "results/app/_app551_C_mt_npu_tts_cuda_out.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 19,
+    "still": []
+   },
+   "results/app/app024_seam_guard_design.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app024_seam_rule_design.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app024_stopword_audit.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app028_soak_60s/app028_subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app042_soak_run4/app042_subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 6,
+    "still": []
+   },
+   "results/app/app121_asr_app_3mat_GPU0.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 8,
+    "still": []
+   },
+   "results/app/app121_asr_app_3mat_GPU0_OLD_v11.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 8,
+    "still": []
+   },
+   "results/app/app121_asr_app_3mat_NPU.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 7,
+    "still": []
+   },
+   "results/app/app121_asr_npu_longseg_new_v111.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app121_asr_npu_longseg_old_v11.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app128b_e2e7_src/off_bgkeep_e2e.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app128b_e2e7_src/on_cpu_bgkeep_e2e.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app128b_e2e7_src/on_gpu_bgkeep_e2e.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app273_mt_int4_vs_int8_evidence.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 4,
+    "still": []
+   },
+   "results/app/app274_app069_loader_fix_evidence.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app294_rc4_npu_acceptance_evidence.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app294_rc4_npu_out/igpu/transcript.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 6,
+    "still": []
+   },
+   "results/app/app294_rc4_npu_out/npu/transcript.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 6,
+    "still": []
+   },
+   "results/app/app294_rc4_npu_out/npu_full/transcript.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 6,
+    "still": []
+   },
+   "results/app/app312_rc5_out/gpu/acceptance.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app312_rc5_out/gpu/transcript.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 11,
+    "still": []
+   },
+   "results/app/app312_rc5_out/npu/acceptance.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app312_rc5_out/npu/transcript.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 10,
+    "still": []
+   },
+   "results/app/app332_v23_cli_final.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 6,
+    "still": []
+   },
+   "results/app/app332_v23_cli_output.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 14,
+    "still": []
+   },
+   "results/app/app337_r1_partial_output.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 14,
+    "still": []
+   },
+   "results/app/app337_v23_cli_rerun_final.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 6,
+    "still": []
+   },
+   "results/app/app337_v23_cli_rerun_output.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 14,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/de/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/en/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/es/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/fr/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/it/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/ja/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/ko/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/pt/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/ru/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/summary.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 30,
+    "still": []
+   },
+   "results/app/app415_rc6_langs/zh/subtitles.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 3,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 20,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/de/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/en/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/es/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/fr/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/it/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/ja/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/ko/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/pt/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/ru/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app418_rc6_tts_direct/zh/wavs.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app419_rc6_langs_summary.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 30,
+    "still": []
+   },
+   "results/app/app419_rc6_langs_summary_payload.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 30,
+    "still": []
+   },
+   "results/app/app439_app099_lang_evidence.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app458_app100_device/gpu_control_asr_npu.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 16,
+    "still": []
+   },
+   "results/app/app458_app100_device/gpu_same_asr_mt.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 17,
+    "still": []
+   },
+   "results/app/app461_app100_device/gpu_control_asr_npu.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 16,
+    "still": []
+   },
+   "results/app/app461_app100_device/gpu_same_asr_mt.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 17,
+    "still": []
+   },
+   "results/app/app501_app105_rc10_acceptance.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app501_app105_rc10_acceptance/chain10min.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 19,
+    "still": []
+   },
+   "results/app/app526_app107_rc11_acceptance/chain10min.txt": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 19,
+    "still": []
+   },
+   "results/app/app582_specialmvp_sp3_acceptance.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app582_specialmvp_sp3_acceptance.run1.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "results/app/app591_acceptance_app119_allnpu_run20261121-033422.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app591_acceptance_sp5_cold_zh_run20261117-093348.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app591_acceptance_sp5_en_run20261117-101859.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app591_acceptance_sp5_zh_run20261117-094715.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app591_acceptance_sp5_zh_run20261117-094715_v2.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app591_acceptance_sp5_zh_run20261117-100823.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app591_acceptance_sp5_zh_run20261117-100823_v2.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "results/app/app591_acceptance_spsp5_zh_run20261117-140853.json": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 2,
+    "still": []
+   },
+   "status/STATUS_ARCHIVE_2026-10.md": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   },
+   "status/archive/STATUS_ASR_upto_20261030.md": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 11,
+    "still": []
+   },
+   "status/status_history.md": {
+    "exists": true,
+    "n_still": 0,
+    "n_base": 1,
+    "still": []
+   }
+  }
+ },
+ "B": {
+  "n_files": 17,
+  "hits": {
+   "results/app/_app330_write_status167.py": [
+    {
+     "len": 23,
+     "sha8": "7d38ac02"
+    }
+   ],
+   "results/app/_app591_app119_default_run20261121-032253_tts_out.wav.tts.jsonl": [
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app042_soak_run2/app042_soak.wav.tts.jsonl": [
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app042_soak_run4/app042_soak.wav.tts.jsonl": [
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app042_soak_run4/app042_subtitles.mt.txt": [
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app294_rc4_npu_out/igpu/transcript.mt.txt": [
+    {
+     "len": 14,
+     "sha8": "5947adcc"
+    },
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app294_rc4_npu_out/npu/transcript.mt.txt": [
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app294_rc4_npu_out/npu_full/transcript.mt.txt": [
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app312_rc5_out/gpu/transcript.mt.txt": [
+    {
+     "len": 14,
+     "sha8": "5947adcc"
+    }
+   ],
+   "results/app/app337_v23_cli_rerun_final.mt.txt": [
+    {
+     "len": 12,
+     "sha8": "3e6082b9"
+    }
+   ],
+   "results/app/app415_rc6_langs/ja/subtitles.mt.txt": [
+    {
+     "len": 27,
+     "sha8": "b2300aeb"
+    },
+    {
+     "len": 17,
+     "sha8": "3baf1168"
+    }
+   ],
+   "results/app/app415_rc6_langs/ko/subtitles.mt.txt": [
+    {
+     "len": 28,
+     "sha8": "f42a7001"
+    }
+   ],
+   "results/app/app415_rc6_langs/zh/subtitles.mt.txt": [
+    {
+     "len": 24,
+     "sha8": "540ebee4"
+    },
+    {
+     "len": 23,
+     "sha8": "7d38ac02"
+    },
+    {
+     "len": 29,
+     "sha8": "24031f04"
+    },
+    {
+     "len": 26,
+     "sha8": "7921c9e1"
+    },
+    {
+     "len": 35,
+     "sha8": "e36ff4f4"
+    }
+   ],
+   "results/app/app458_app100_device/gpu_same_asr_mt.mt.txt": [
+    {
+     "len": 14,
+     "sha8": "5947adcc"
+    }
+   ],
+   "results/app/app461_app100_device/gpu_same_asr_mt.mt.txt": [
+    {
+     "len": 14,
+     "sha8": "5947adcc"
+    }
+   ],
+   "results/app/app461_app100_device/gpu_same_asr_mt.wav.tts.jsonl": [
+    {
+     "len": 14,
+     "sha8": "5947adcc"
+    }
+   ],
+   "results/app/app501_app105_rc10_acceptance/chain10min.mt.txt": [
+    {
+     "len": 14,
+     "sha8": "5947adcc"
+    }
+   ]
+  }
+ },
+ "C": {
+  "dead_n_files": 54,
+  "dead_only": [
+   ".tmp_recover_app/_app249_desen_analyze.py",
+   ".tmp_recover_app/_app249_desen_apply_full.py",
+   ".tmp_recover_app/_app249_desen_scan_full.py",
+   ".tmp_recover_app/_app249_verify_desen_final.py",
+   "live_caption/_app121_sec221_body.py",
+   "live_caption/diag_c111_half.py",
+   "results/app/_app551_A_mt_npu_tts_off_out.txt",
+   "results/app/_app551_B_mt_gpu0_tts_cuda_out.txt",
+   "results/app/_app551_C_mt_npu_tts_cuda_out.txt",
+   "results/app/app024_seam_guard_design.json",
+   "results/app/app024_seam_rule_design.json",
+   "results/app/app024_stopword_audit.json",
+   "results/app/app028_soak_60s/app028_subtitles.txt",
+   "results/app/app042_soak_run4/app042_subtitles.txt",
+   "results/app/app046_match_rule_probe_evidence.json",
+   "results/app/app053_caption_render_segcap_candidate.py",
+   "results/app/app053_draft_prefix_boundary_probe.py",
+   "results/app/app121_asr_app_3mat_GPU0.json",
+   "results/app/app121_asr_app_3mat_GPU0_OLD_v11.json",
+   "results/app/app121_asr_app_3mat_NPU.json",
+   "results/app/app121_asr_npu_longseg_new_v111.json",
+   "results/app/app121_asr_npu_longseg_old_v11.json",
+   "results/app/app127_c111_real_timing_draft_lines.py",
+   "results/app/app128b_e2e7_src/off_bgkeep_e2e.json",
+   "results/app/app128b_e2e7_src/on_cpu_bgkeep_e2e.json",
+   "results/app/app128b_e2e7_src/on_gpu_bgkeep_e2e.json",
+   "results/app/app249_desen_scan_full.json",
+   "results/app/app249_desen_skeleton_verify.json",
+   "results/app/app273_mt_int4_vs_int8_evidence.json",
+   "results/app/app274_app069_loader_fix_evidence.json",
+   "results/app/app294_rc4_npu_acceptance_evidence.json",
+   "results/app/app294_rc4_npu_out/igpu/transcript.txt",
+   "results/app/app294_rc4_npu_out/npu/transcript.txt",
+   "results/app/app294_rc4_npu_out/npu_full/transcript.txt",
+   "results/app/app312_rc5_out/gpu/acceptance.json",
+   "results/app/app312_rc5_out/gpu/transcript.txt",
+   "results/app/app312_rc5_out/npu/acceptance.json",
+   "results/app/app312_rc5_out/npu/transcript.txt",
+   "results/app/app332_v23_cli.json",
+   "results/app/app332_v23_cli_final.txt",
+   "results/app/app332_v23_cli_output.txt",
+   "results/app/app337_r1_partial_output.txt",
+   "results/app/app337_v23_cli_rerun_final.txt",
+   "results/app/app337_v23_cli_rerun_output.txt",
+   "results/app/app458_app100_device/gpu_control_asr_npu.txt",
+   "results/app/app458_app100_device/gpu_same_asr_mt.txt",
+   "results/app/app461_app100_device/gpu_control_asr_npu.txt",
+   "results/app/app461_app100_device/gpu_same_asr_mt.txt",
+   "results/app/app501_app105_rc10_acceptance.json",
+   "results/app/app501_app105_rc10_acceptance/chain10min.txt",
+   "results/app/app526_app107_rc11_acceptance/chain10min.txt",
+   "results/app/test_app015_caption_render.py",
+   "status/STATUS.md.c027bak",
+   "status/archive/STATUS_ASR_upto_20261030.md"
+  ],
+  "mine_only": [
+   "results/app/_app330_write_status167.py",
+   "results/app/_app591_app119_default_run20261121-032253_tts_out.wav.tts.jsonl",
+   "results/app/app042_soak_run2/app042_soak.wav.tts.jsonl",
+   "results/app/app042_soak_run4/app042_soak.wav.tts.jsonl",
+   "results/app/app042_soak_run4/app042_subtitles.mt.txt",
+   "results/app/app294_rc4_npu_out/igpu/transcript.mt.txt",
+   "results/app/app294_rc4_npu_out/npu/transcript.mt.txt",
+   "results/app/app294_rc4_npu_out/npu_full/transcript.mt.txt",
+   "results/app/app312_rc5_out/gpu/transcript.mt.txt",
+   "results/app/app337_v23_cli_rerun_final.mt.txt",
+   "results/app/app415_rc6_langs/ja/subtitles.mt.txt",
+   "results/app/app415_rc6_langs/ko/subtitles.mt.txt",
+   "results/app/app415_rc6_langs/zh/subtitles.mt.txt",
+   "results/app/app458_app100_device/gpu_same_asr_mt.mt.txt",
+   "results/app/app461_app100_device/gpu_same_asr_mt.mt.txt",
+   "results/app/app461_app100_device/gpu_same_asr_mt.wav.tts.jsonl",
+   "results/app/app501_app105_rc10_acceptance/chain10min.mt.txt"
+  ],
+  "both": 0
+ }
+}

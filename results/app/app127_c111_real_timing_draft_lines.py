@@ -137,7 +137,7 @@ def check(group, name, ok, detail=''):
 CORPORA = {
     # ① 链自然闭合（段尾有句号）
     'chain_close': [
-        'Good morning everyone and welcome to the quarterly review meeting.',
+        '[会议句 idx 55] and welcome to the quarterly review meeting.',
         'We have three agenda items today. The first one is the market expansion',
         'plan for the second quarter of next year across the whole region',
         'and we will review the numbers in detail.',
