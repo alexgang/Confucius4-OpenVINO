@@ -1,0 +1,20 @@
+{
+ "script": "_app250_verify_email.py",
+ "message_id": "msg_2hYbcrP4Lv8IOLc4dEe1rhAprUncWnY7aVgyR4YKgz6EBA",
+ "sent_at": "2026-11-28T05:32:21Z",
+ "to": "alexchen7694@agent.qq.com",
+ "subject_prefix": "[C4][A][STATUS][APP] §250",
+ "bytes_disk": 6690,
+ "bytes_disk_compared": 6689,
+ "sha256_disk": "ce252eeadb29b9cd2f0d4665aed1dcc5d741a98900a139e564d1fc4c0498ee88",
+ "bytes_sent_normalized": 6689,
+ "sha256_sent_normalized": "ce252eeadb29b9cd2f0d4665aed1dcc5d741a98900a139e564d1fc4c0498ee88",
+ "identical_after_denorm": true,
+ "landmarks": {
+  "head": true,
+  "mid": true,
+  "tail": true
+ },
+ "all_landmarks_hit": true,
+ "truncated": false
+}

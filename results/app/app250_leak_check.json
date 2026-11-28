@@ -1,6 +1,7 @@
 {
  "script": "_app250_leak_check.py",
- "n_candidates": 51,
+ "criterion": "确定性候选集（HEAD 变更集 ∪ app249/app250 相关 .py/.json ∪ STATUS）× reviewer 权威基线句（子串粒度）",
+ "n_candidates": 92,
  "n_leak": 0,
  "leak_files": [],
  "pass": true

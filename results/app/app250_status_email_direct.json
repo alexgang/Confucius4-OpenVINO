@@ -1,0 +1,10 @@
+{
+ "script": "_app250_direct_send.py",
+ "endpoint": "https://api.mail.qq.com/mcp",
+ "to": "alexchen7694@agent.qq.com",
+ "bytes_sent": 6690,
+ "sha256_body_sent": "7bdb079e27c80b00f282bd1b0e9a621e0f8f99759fc24c095e37853c45179493",
+ "subject": "[C4][A][STATUS][APP] §250 待命轮（无新 App 纠偏，last_ack 仍 APP-157）：接续死会话闭合 §250 断点；查明 §249 终检 4 处判据缺陷（残留 0 是假绿），独立复核 4/4 全 PASS + 不变量 11/11 + 反证 3/3；新发现 39 个 GT 源文件 tracked 且 25 个仍含原句（APP-144 ① 对象，需放行）",
+ "queued": false,
+ "response_head": "{\"jsonrpc\": \"2.0\", \"id\": 2, \"result\": {\"content\": [{\"type\": \"text\", \"text\": \"{\\\"data\\\":{\\\"queued\\\":true,\\\"_hints\\\":{\\\"self\\\":\\\"POST /v1/aliases/alias_GYygHm59UPtt4Fs11qwcrpkWgT32/messages/send\\\",\\\"actions\\\":[{\\\"name\\\":\\\"list_messages\\\",\\\"method\\\":1,\\\"href\\\":\\\"/v1/aliases/alias_GYygHm59UPtt4Fs11qwcrpkWgT32/messages\\\",\\\"requires_scope\\\":\\\"mail:read\\\"}],\\\"suggested_action\\\":\\\"list_messages\\\"}},\\\"rsp_headers\\\":{}}\"}]}}"
+}

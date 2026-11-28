@@ -1,0 +1,73 @@
+[C4][A][STATUS][APP] §250 待命轮（无新 App 纠偏，last_ack 仍 APP-157）＋ 接续死会话闭合 §250 断点 ＋ 查明 §249 终检的 4 处判据缺陷
+
+reviewer 好，【地标-首】APP 线程 §250 回报。
+last_ack(=APP-157) 的新条目 ⇒ last_ack 不变。本轮接续上一会话（TAKEOVER），并查明 §249 终检存在 4 处判据缺陷（残留 0 是范围受限的假绿），已独立重算并闭合。
+
+═══ 一、六通道复核 ⇒ 无新 App 纠偏 ═══
+1 局域网 status/app/CORRECTIONS_APP.md：46642 B／sha256 cc1067b7…17ebae／mtime 2026-11-27 15:08:17／## APP-xxx 15 条／max APP-157（＝last_ack）
+2 QQ 收件箱：App 封 max = APP-157（msg_8s6eELs8…，2026-11-27T07:08:16Z）＝已执行
+3 QQ spam：空　4 QQ trash：1 封（MiniMVP rc9 报告，与 App 无关）
+5 agent-mail：not_bound（该通道本会话不可用）
+6 全库检索 APP-1(5[89]|[6-9][0-9])：命中全是「APP-178」历史注释（别的模块编号）
+⇒ 六通道一致：无编号 > APP-157 的新条目 ⇒ last_ack 不变。
+
+═══ 二、接续断点：死会话的「行为等价通过」没有落盘证据 ═══
+上一会话（token a958b358，11-28 10:35 起、11:43:47 最后心跳）note 写「§250脱敏已应用+行为等价验证通过(stdout/stderr/rc还原后逐字相等)」。
+但 results/app/app250_behavior.json（该脚本的 OUT）从未产出 ⇒ 「通过」无可核证据。
+且它的 full_before/full_after 直接比原始输出 ⇒ 把「文本替换」当成行为差异（判据选错）。
+且它对需要 numpy 的脚本用无 numpy 的系统 py 3.13 ⇒ before/after 都崩溃 ⇒「rc 相同」成空洞恒真。
+⇒ 本轮不采信该结论，从零独立重算。
+
+═══ 三、查明 §249 终检的 4 处判据缺陷（残留 0 是假绿）═══
+D-1 §1 残留扫描只扫 6 个文本扩展名（.md/.json/.txt/.tsv/.csv/.jsonl）⇒ .py/.bak 从未扫过
+D-2 §1 跳过 .transcript.txt/.mt.txt/.tts.jsonl ⇒ 恰是 39 个 GT 源文件的后缀
+D-3 §1 判据是整句相等 ⇒ GT 句嵌在更大句子里判不出
+D-4 还原式复核按替换后长度定位 ⇒ 行数变会错位
+⇒ §250 的立项理由成立；死会话的脱敏动作方向正确。
+
+═══ 四、独立复核结果（4/4 判据全 PASS）═══
+§1 残留扫描：reviewer 权威基线句 73 条 × 2786 个 tracked 文件（子串粒度）⇒ 残留 1 个文件，豁免外 0 ⇒ PASS
+§2 diff 法（与施加算法无关）：11/11 ⇒ PASS
+§3 语法/JSON：11/11 ⇒ PASS
+§4 行为等价（占位符还原式）：4/4 ⇒ PASS
+    results/app/app053_draft_prefix_boundary_probe.py        rc=None/0 ok=True
+    results/app/test_app015_caption_render.py                rc=0/0 ok=True
+    results/app/app127_c111_real_timing_draft_lines.py       rc=1/1 ok=True
+    live_caption/diag_c111_half.py                           rc=1/1 ok=True
+逐文件不变量（对照备份逐字节：行尾/行数/非替换部分/占位符计数）：11/11 ⇒ PASS
+反证组（AC-1/2/3 故意改坏被检部分）：3/3 ⇒ 判据有鉴别力 ⇒ PASS
+总判定 all_pass = True（证据 results/app/app250_verify_indep3.json）
+
+═══ 五、本轮自身修掉的 5 处判据缺陷（皆判据缺陷，非产品缺陷）═══
+C-1 还原映射用全局 idx→原句（同一 idx 在不同文件对应不同原句）⇒ 假 FAIL ⇒ 改逐文件建映射
+C-2 跑脚本不备份 evidence ⇒ 污染工作树（实测污染 3 个 tracked evidence）⇒ 加备份+复原
+C-3 解释器用系统 py 3.13（无 numpy）⇒ 脚本崩溃 ⇒ rc 相同成空洞恒真 ⇒ 改用包内 .venv py3.12
+C-4 evidence 要求逐字节相等 ⇒ 假 FAIL（evidence 记的是语料长度派生数字）⇒ 改判断言判定全同 + 数字差恰等于替换字符数差
+C-5 崩溃一律判 FAIL ⇒ 假 FAIL（该脚本脱敏前后都在同一行抛同一 AssertionError，是既有缺陷、与脱敏无关）⇒ 改判 before/after 崩溃完全一致并如实登记
+
+═══ 六、§250 脱敏本身：成立 ═══
+脱敏已落盘：11 文件 / 19 处（app250_redact.json）。
+处置三类：doc（docstring/comment）改；gen/prod（companion 生成器、证据生成器、诊断脚本语料）改（产物已脱敏而生产者未脱敏 ⇒ 重跑会回灌原句）；func 不改。
+豁免 1 处如实登记：app053_draft_prefix_boundary_probe.py 的断言比较操作数（GT 句 len=15 sha8=9726b63b）⇒ 换成占位符后恒不等 ⇒ ok_wrong 恒 False ⇒空洞恒真（假绿）⇒ 判据失去鉴别力 ⇒ 不改。其产物证据实测不含该句。
+入库前泄漏自查：抓到 7 处泄漏（含我自己 3 处）已修 ⇒ 89 候选文件泄漏 0 ⇒ PASS
+（候选集口径：§250 提交实际入库的文件 ∪ 仓内 app249/app250 相关 .py/.json ∪ STATUS ⇒ **确定性、可复算**）
+可复现性：还原 11 文件后重跑生产脚本 ⇒ 与重跑前快照 sha256 逐个相等；且只改这 11 个文件。
+.gitignore 加 .tmp_recover_app/_app250_base/ 挡住脱敏前基线快照入库。
+
+═══ 七、🔴 新发现（如实登记，未擅自处理）═══
+39 个 GT 源文件全部被 git 跟踪；实测 25/39 仍含原句（最多者 336 句）。
+.gitignore 已有 *.tts.jsonl / *.mt.txt 类别规则，但 git check-ignore 实测 NOT IGNORED ⇒ 规则被「文件已 tracked」架空（gitignore 只影响未跟踪文件）。
+⇒ 这正是 APP-144 ①（GitHub 历史改写）的对象。历史改写是不可逆强推、git rm --cached 属破坏性操作 ⇒ 需 reviewer 明确放行 ⇒ 本轮未改历史、未 rm --cached。
+
+═══ 八、交付面 ═══
+提交 5652b19（App 侧 61 个文件：11 个脱敏文件 + §222 全部 §250 脚本与证据 + 本轮独立复核脚本与证据 + .gitignore + STATUS §250 指针行与 companion）。
+🔴 绝不提交 status/app/CORRECTIONS_APP.md（reviewer 独占）：本轮未 add、未改；收尾四项指纹与开工时逐字一致（46642 B／cc1067b7…／mtime 15:08:17／15 条）。
+未打包 zip（用户规则：不通知 ⇒ 不打包）／未改任何客户包目录／未跑推理或测速（未取 MACHINE_LOCK）／未调 MiniMax／未连 B 机。
+
+═══ 九、待 reviewer 裁定 ═══
+① APP-144 ① 历史改写（含 39 个 GT 源文件的 rm --cached）——需明确放行
+② §249 的 app249_verify_desen_final.py 仍是旧判据（本轮只追加不回头改）
+③ diag_c111_half.py 的既有缺陷（脱敏前后同一行 AssertionError，与脱敏无关）
+
+STATUS 正文全文：status/app/STATUS_APP_sec250_detail_20261128.md
+【地标-尾】§250 结束。last_ack 仍 APP-157。
